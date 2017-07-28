@@ -1,0 +1,54 @@
+@import url("https://fonts.googleapis.com/css?family=Inconsolata:400,700");
+audio,
+canvas,
+iframe,
+img,
+svg,
+video {
+  vertical-align: middle; }
+
+/* Remove default fieldset styles.
+ */
+fieldset {
+  border: 0;
+  margin: 0;
+  padding: 0; }
+
+/* Allow only vertical resizing of textareas.
+ */
+textarea {
+  resize: vertical; }
+
+/* ==========================================================================
+ * Author's custom styles
+ * ========================================================================== */
+html {
+  color: #222;
+  font-size: 1em;
+  line-height: 1.4;
+  font-family: "Inconsolata", monospace; }
+
+.top {
+  background: #222;
+  width: 100%;
+  color: #eee;
+  display: block;
+  display: none; }
+
+.loading-spinner {
+  display: none; }
+
+#canvas {
+  height: 500px; }
+
+#emotion-gradient {
+  overflow: hidden;
+  position: relative; }
+  #emotion-gradient svg {
+    width: 100vw; }
+
+#emotion-gradient-bottom {
+  background: #ddd;
+  margin-bottom: -150px; }
+
+/*# sourceMappingURL=main.css.map */
