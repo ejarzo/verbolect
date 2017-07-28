@@ -1,7 +1,9 @@
 
-
+/*
+  contains arrays for each major emotion that contain their sub-emotions.
+  includes methods for converting emotion to color
+*/
 class EmotionManager {
-
     constructor () {
         var likeList = [
           "happy", 
@@ -168,7 +170,6 @@ class EmotionManager {
         return this.getColorForEmotionCategory(this.getEmotionCategory(input));
     }
 
-
     getColorForEmotionCategory(input) {
         var r = 0;
         var g = 0;
@@ -219,22 +220,28 @@ class EmotionManager {
 }
 
 /* ========================================================================== */
+/* =========================== Variables ==================================== */
 
+// init state
 var prevOutput = "Hello";
 var prevCs = "";
 
+// add svg canvas to all modules
 d3.selectAll(".module").append("svg")
                      .attr("width", "100%")
                      .attr("height", "100%");
 
 var EM = new EmotionManager();
 
+// module variables
 var emGrid =  d3.select("#emotion-history-grid svg");
 var emGradient =  d3.select("#emotion-gradient svg");
 var emGradientBottom =  d3.select("#emotion-gradient-bottom svg");
 
+// list of color blocks
 var colorsList = [];
 
+// gradients 
 var gradientBottom;
 var gradient;
 var gradientDuration = 3000;
@@ -246,6 +253,9 @@ $(document).on("ready", function () {
     getResponse();
 })
 
+/* 
+  returns a JSON response from the cleverbot API using the prevOutpt as the input
+*/
 function getResponse () {
     var stringWithoutSpaces = prevOutput.replace(/\s/g, '+');
     var url = "http://www.cleverbot.com/getreply?key=" + APIKEY + "&input=" + 
@@ -271,9 +281,11 @@ function getResponse () {
         prevOutput = data.output;
         prevCs = data.cs;
     });
-
 }
 
+/*
+  creates a gradient from the previous color to the current color
+*/
 function generateGradient (newCol) {
 
 
@@ -361,8 +373,9 @@ function generateGradient (newCol) {
         .style("fill", "url(#gradient-bottom)");
 }
 
-
-
+/*
+  adds a color block to the conversation history module
+*/
 function addToHistory (newCol) {
     var len = colorsList.length;
 
@@ -391,12 +404,17 @@ function addToHistory (newCol) {
 /* ========================================================================== */
 
 
+/*
+  helper for hex converter
+*/
 function componentToHex(c) {
     var hex = c.toString(16);
     return hex.length == 1 ? "0" + hex : hex;
 }
 
-
+/* 
+  converts {r,g,b} object to hex color
+*/
 function rgbToHex(col) {
     var r = col.r;
     var g = col.g;
