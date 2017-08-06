@@ -117,6 +117,7 @@ class EmotionManager {
 
         var angerList = [
           "furious", 
+          "forceful",
           "infuriated", 
           "angry", 
           "scared", 
@@ -129,7 +130,8 @@ class EmotionManager {
           "argumentative", 
           "assertive", 
           "stubborn",
-          "devious"
+          "devious",
+          "grumpy"
         ];
 
         var disgustList = [
@@ -228,8 +230,8 @@ var prevCs = "";
 
 // add svg canvas to all modules
 d3.selectAll(".module").append("svg")
-                     .attr("width", "100%")
-                     .attr("height", "100%");
+                        .attr("width", "100%")
+                        .attr("height", "100%");
 
 var EM = new EmotionManager();
 
@@ -240,14 +242,15 @@ var emGradientBottom =  d3.select("#emotion-gradient-bottom svg");
 
 // list of color blocks
 var colorsList = [];
+var blockAddDuration = 500;
 
 // gradients 
 var gradientBottom;
 var gradient;
-var gradientDuration = 3000;
+var gradientDuration = 500;
+
 
 /* ========================================================================== */
-
 
 $(document).on("ready", function () {
     getResponse();
@@ -263,7 +266,7 @@ function getResponse () {
     
     $(".loading-spinner").show();
     
-    $.getJSON( url, function( data ) {
+    $.getJSON(url, function(data) {
         $(".loading-spinner").hide();
         var emotionCategory = EM.getEmotionCategory(data.emotion);
         
@@ -287,9 +290,6 @@ function getResponse () {
   creates a gradient from the previous color to the current color
 */
 function generateGradient (newCol) {
-
-
-
     var width = "100%";
     var prevCol = "#000";
     
@@ -346,9 +346,9 @@ function generateGradient (newCol) {
     var prevPrevCol = "#000";
     if (colorsList.length > 2) {
         prevPrevCol = colorsList[colorsList.length - 2].attr("fill");
-        
     }
-    console.log(prevCol);
+    //console.log(prevCol);
+    
     gradientBottom = emGradientBottom.append("linearGradient")
                         .attr("id", "gradient-bottom")
                         .attr("x1", "0%")
@@ -385,24 +385,35 @@ function addToHistory (newCol) {
     
     var width = 100 / len;
     var xPos = width * (len - 1);
+    
+    var t = d3.transition()
+            .duration(blockAddDuration)
+            .ease(d3.easeLinear);
 
     colorsList.forEach(function(rect, index) {
-        rect.attr("width", width + "%");
-        rect.attr("x", width * (index - 1) + "%");
+        rect.transition(t).attr("width", width + "%");
+        rect.transition(t).attr("x", width * (index - 1) + "%");
     })
     
     var newRect = emGrid.append("rect")
-            .attr("x", xPos + "%")
+            .attr("x", "100%")
             .attr("y", 0)
-            .attr("width", width+"%")
+            .attr("width", 0)
             .attr("height", "100%")
             .attr("fill", newCol);
 
+    newRect.transition(t).attr("width", width+"%");
+    newRect.transition(t).attr("x", xPos + "%");
+    
     colorsList.push(newRect);
 }
 
 /* ========================================================================== */
 
+/* ========================================================================== */
+$("#show-menu").on("click", function () {
+    $("#menu").show();
+})
 
 /*
   helper for hex converter
@@ -422,3 +433,5 @@ function rgbToHex(col) {
 
     return "#" + componentToHex(r) + componentToHex(g) + componentToHex(b);
 }
+
+

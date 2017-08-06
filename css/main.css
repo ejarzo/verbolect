@@ -28,12 +28,27 @@ html {
   line-height: 1.4;
   font-family: "Inconsolata", monospace; }
 
-.top {
+#menu {
   background: #222;
+  height: 30px;
   width: 100%;
   color: #eee;
   display: block;
-  display: none; }
+  display: none;
+  z-index: 20;
+  position: absolute; }
+
+.menu-toggle {
+  background: none;
+  border: none;
+  color: #fff; }
+
+#show-menu {
+  position: absolute;
+  z-index: 10;
+  background: none;
+  border: none;
+  color: #fff; }
 
 .loading-spinner {
   display: none; }

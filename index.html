@@ -9,7 +9,7 @@
 
         <link rel="apple-touch-icon" href="apple-touch-icon.png">
         <!-- Place favicon.ico in the root directory -->
-
+        <link rel="stylesheet" href="css/ionicons.min.css">
         <link rel="stylesheet" href="css/normalize.css">
         <link rel="stylesheet" href="css/main.css">
         <script src="js/vendor/modernizr-2.8.3.min.js"></script>
@@ -18,16 +18,24 @@
         <!--[if lt IE 8]>
             <p class="browserupgrade">You are using an <strong>outdated</strong> browser. Please <a href="http://browsehappy.com/">upgrade your browser</a> to improve your experience.</p>
         <![endif]-->
+        <!-- <button class="menu-toggle" id="show-menu">...</button> -->
+        
 
-        <span class="top">Verbolect - Noncore Projector</span>
+        <div id="menu">
+          <!--   <button class="transport-icon enter-fullscreen" title="Toggle Fullscreen">
+                <i class="ion-arrow-expand"></i>
+            </button>
+            <button class="menu-toggle" id="hide-menu">x</button>
+            <span class="top">Verbolect - Noncore Projector</span> -->
+        </div>
+
         <div id="main">
             <div class="module" id="emotion-gradient-bottom"></div>
             <div class="module" id="emotion-gradient"></div>
             <div class="module" id="emotion-history-grid"></div>
+            <!-- <div class="module" id="particles"></div> -->
 
-              <!-- <div class="module" id="particles"></div> -->
-
-              <canvas width="960" height="500" style="background-color: black"></canvas>
+            <!-- <canvas width="960" height="500" style="background-color: black"></canvas> -->
             <div>
                 <button onclick="getResponse()">get response</button>
                 <span class="conversation-text"></span>
