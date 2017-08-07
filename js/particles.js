@@ -1,9 +1,11 @@
 // block by monfera
   
-var width = 960
+var width = 1500
 var height = 500
 
-var particleCount = 1500
+var interactionCount
+var particleCount = getInteractionCount()
+console.log(particleCount)
 
 // some of the settings change on every reload
 var particleRadius = 10 + Math.random() * 3
@@ -110,6 +112,8 @@ var palettes = [
 // pick from the new continuous color palettes
 var palette1 = palettes[Math.floor(palettes.length * Math.random())]
 var palette2 = palettes[Math.floor(palettes.length * Math.random())]
+// var palette1 = getResponse.newCol
+// var palette2 = getResponse.newCol
 
 // canvas render - plenty fast for this, no need for WebGL
 // palettes are traversed both ways to avoid disruption
@@ -128,6 +132,7 @@ function render() {
 
   // draw one half of the particles with a color
   ctx.strokeStyle = palette1(Math.abs(2 * (t % cycleLen1) / cycleLen1 - 1))
+  ctx.strokeStyle = palette1
   ctx.beginPath()
   for(i = 0; i < (particleCount >> 1); i++) {
     particle = particles[i]
@@ -138,6 +143,7 @@ function render() {
 
   // draw the other half of the particles with another color
   ctx.strokeStyle = palette2(Math.abs(2 * (t % cycleLen2) / cycleLen2 - 1))
+  ctx.strokeStyle = palette2
   ctx.beginPath()
   for(i = (particleCount >> 1); i < particleCount; i++) {
     particle = particles[i]
@@ -169,4 +175,8 @@ function render() {
   }
   context.fill()*/
 
+}
+
+function getInteractionCount (input) {
+  return parseInt (input)
 }    

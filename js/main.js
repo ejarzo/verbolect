@@ -259,6 +259,7 @@ $(document).on("ready", function () {
 /* 
   returns a JSON response from the cleverbot API using the prevOutpt as the input
 */
+
 function getResponse () {
     var stringWithoutSpaces = prevOutput.replace(/\s/g, '+');
     var url = "http://www.cleverbot.com/getreply?key=" + APIKEY + "&input=" + 
@@ -269,11 +270,13 @@ function getResponse () {
     $.getJSON(url, function(data) {
         $(".loading-spinner").hide();
         var emotionCategory = EM.getEmotionCategory(data.emotion);
+        var interactionCount = getInteractionCount(data.interaction_count);
         
         console.log(data);
         console.log("OUTPUT: ", data.output);
         console.log("EMOTION: ", data.emotion);
         console.log("IN CATEGORY: ", emotionCategory);
+        console.log("INTERACTION COUNT: ", data.interaction_count)
 
         $(".conversation-text").html(data.output);
 
