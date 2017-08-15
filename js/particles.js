@@ -4,7 +4,7 @@ var width = 1500
 var height = 500
 
 var interactionCount
-var particleCount = getInteractionCount()
+var particleCount = 1000
 console.log(particleCount)
 
 // some of the settings change on every reload

@@ -52,7 +52,8 @@ class EmotionManager {
           "flirty", 
           "righteous", 
           "sure", 
-          "victorious"
+          "victorious",
+          "didactic"
         ];
 
         var laughingList = [
@@ -172,7 +173,11 @@ class EmotionManager {
         return this.getColorForEmotionCategory(this.getEmotionCategory(input));
     }
 
-    getColorForEmotionCategory(input) {
+    getColorForEmotionIndex (i) {
+        return rgbToHex(this.getColorForEmotionCategory(this.responseNames[i]));
+    }
+
+    getColorForEmotionCategory (input) {
         var r = 0;
         var g = 0;
         var b = 0;
@@ -244,34 +249,192 @@ var emGradientBottom =  d3.select("#emotion-gradient-bottom svg");
 var colorsList = [];
 var blockAddDuration = 500;
 
+
 // gradients 
 var gradientBottom;
 var gradient;
 var gradientDuration = 500;
 
+var particlesModule;
+var intervalID
+
+class Particles {
+    constructor () {
+
+        /* restarts the simulation */
+        this.restart = () => {
+          // Apply the general update pattern to the nodes.
+          node = node.data(nodes);
+          wall = wall.data(walls);
+          node.exit().remove();
+          wall.exit().remove();
+          
+          node = node.enter().append("circle").attr("fill", (d) => d.color).attr("r", nodeRadius).merge(node),
+          wall = wall.enter().append("circle").attr("fill", (d) => "#000").attr("r", 50).merge(wall),
+
+          // Update and restart the simulation.
+          simulation.nodes(walls.concat(nodes));
+          simulation.force("gravity", this.gravity);
+          simulation.alpha(1).restart();
+        }
+
+        /* renders the canvas, every frame */
+        this.ticked = () => {
+            node.attr("cx", (d) => { return d.x = Math.max(width/-2 + nodeRadius, Math.min(width/2 - nodeRadius, d.x)); })
+                .attr("cy", (d) => { return d.y = Math.max(height/-2 + nodeRadius, Math.min(height/2 - nodeRadius, d.y)); })
+                .attr("r", (d) => d.radius);
+            
+            wall.attr("cx", (d) => d.fx)
+                .attr("cy", (d) => d.fy)
+                .attr("r", (d) => d.radius);
+        }
+
+        /* adds node to the canvas */
+        this.addNode = (color, x, y) => {
+            nodes.push({x: x, y: y, color: color, radius: nodeRadius, type: "node"});
+            this.restart();
+        }
+
+        this.gravity = (alpha) => {
+            for (var i = 0, n = nodes.length, node, k = alpha * 0.1; i < n; ++i) {
+                node = nodes[i];
+                node.vy += 1;
+            }
+        }
+
+        this.dumpColors = (rectList) => {
+            console.log(rectList);
+            for (let i = 1; i < rectList.length; i++) {
+                let rect = rectList[i];
+                let x = rect.attr("x");
+                let bbox = rect.node().getBoundingClientRect();
+                console.log(bbox);
+                setIntervalX( () => {
+                    this.addNode(rect.attr("fill"), bbox.left + bbox.width/2 - width/2, height/-2)
+                }, 100, 15);
+            }
+        }
+
+        this.oscillate = () => {
+            var intervalTime = 2000;
+
+            // oscilate left ball
+            setInterval (() => {
+                this.setWallRadius(0, 1, 5);
+            }, intervalTime)
+            
+            setTimeout (() => {
+                setInterval (() => {
+                    this.setWallRadius(0, 1, -5);
+                }, intervalTime)
+            }, intervalTime/2)
+
+            // oscilate right ball
+            setInterval (() => {
+                this.setWallRadius(1, 1, 5);
+            }, intervalTime*(2/3))
+            
+            setTimeout (() => {
+                setInterval (() => {
+                    this.setWallRadius(1, 1, -5);
+                }, intervalTime*(2/3))
+            }, intervalTime*(2/3)/2)
+        }
+
+        this.setWallRadius = (i, r, amount) => {
+            setIntervalX ( () => {
+                walls[i].radius += amount;
+                this.restart();
+            }, 20, 40);
+        }
+
+        /* ================================================================== */
+
+        var svg = d3.select("#particles svg"),
+            bbox = svg.node().getBoundingClientRect(),
+            width = bbox.width,
+            height = bbox.height,
+            nodeRadius = 5,
+            wallRadius = 250,
+            floorRadius = 10000,
+            floorY = floorRadius - 8 + height/2
+
+        var nodes = [],
+            walls = [{fx: width/-2 - wallRadius/1.5, fy: height/3, radius: wallRadius, fixed: true, id: 0}, // left wall
+                     {fx: width/2 + wallRadius/1.5,  fy: height/3, radius: wallRadius, fixed: true, id: 1},  // right wall
+                     {fx: 0, fy: floorY, radius: floorRadius, fixed: true, id: 2}];   // floor
+
+        var aDecay = 0.1,
+            vDecay = 0.05,
+            chargeStrength = -10,
+            gravityStrength = 0.03,
+            collideStrength = 1.3,
+            collideIterations = 5,
+            nodeBuffer = 8
+
+        var simulation = d3.forceSimulation(walls.concat(nodes))
+            .alphaDecay(aDecay)
+            .velocityDecay(vDecay)
+            //.force("charge", d3.forceManyBody().strength(chargeStrength))
+            .force("gravity", this.gravity(gravityStrength))
+            .force("collide", d3.forceCollide().radius((d) => {
+                if (d.type == "node") {
+                    return d.radius + Math.random() * 0.25 + nodeBuffer
+                } else return d.radius;
+            }).iterations(collideIterations).strength((collideStrength)))
+            .alphaTarget(1)
+            .on("tick", this.ticked);
+
+        var g = svg.append("g").attr("transform", "translate(" + width / 2 + "," + height / 2 + ")");
+        var node = g.append("g").selectAll(".node");
+        var wall = g.append("g").selectAll(".wall");
+
+        this.restart();
+    }
+}
+
 
 /* ========================================================================== */
 
+/* listen for key presses*/
+$(window).keypress(function(e) {
+    if (e.which === 32) { // space bar
+        getResponse();
+    }
+});
+
+/* execute on page load*/
 $(document).on("ready", function () {
+    
+    particlesModule = new Particles();
+    particlesModule.oscillate();
+
     getResponse();
 })
+
+function dump () {
+    particlesModule.dumpColors(colorsList);
+}
 
 /* 
   returns a JSON response from the cleverbot API using the prevOutpt as the input
 */
-
 function getResponse () {
+    //particlesModule.addNode(EM.getColorForEmotionIndex(Math.floor(Math.random() * 7)), 0, 0);
+    //return;
+
+    $(".loading-spinner").show();
+    
     var stringWithoutSpaces = prevOutput.replace(/\s/g, '+');
     var url = "http://www.cleverbot.com/getreply?key=" + APIKEY + "&input=" + 
                 stringWithoutSpaces + "&cs=" + prevCs + "&cb_settings_emotion=yes";
     
-    $(".loading-spinner").show();
-    
     $.getJSON(url, function(data) {
         $(".loading-spinner").hide();
         var emotionCategory = EM.getEmotionCategory(data.emotion);
-        var interactionCount = getInteractionCount(data.interaction_count);
+        //var interactionCount = getInteractionCount(data.interaction_count);
         
+        //console.log(data);
         console.log(data);
         console.log("OUTPUT: ", data.output);
         console.log("EMOTION: ", data.emotion);
@@ -281,9 +444,12 @@ function getResponse () {
         $(".conversation-text").html(data.output);
 
         var newCol = rgbToHex(EM.getColorForEmotion(data.emotion));
-        console.log(newCol);
-        generateGradient(newCol);
 
+        if (data.interaction_count > 0) {
+            renderGradient(newCol);
+            //particlesModule.setWallRadius(0, data.emotion_degree);
+        }
+        
         prevOutput = data.output;
         prevCs = data.cs;
     });
@@ -292,13 +458,13 @@ function getResponse () {
 /*
   creates a gradient from the previous color to the current color
 */
-function generateGradient (newCol) {
+function renderGradient (newCol) {
     var width = "100%";
     var prevCol = "#000";
     
     if(colorsList.length > 1) {
         var prevRect = colorsList[colorsList.length - 1];
-        console.log(prevRect)
+        //console.log(prevRect)
         prevCol = colorsList[colorsList.length - 1].attr("fill");
     }
     
@@ -437,4 +603,45 @@ function rgbToHex(col) {
     return "#" + componentToHex(r) + componentToHex(g) + componentToHex(b);
 }
 
+function setIntervalX(callback, delay, repetitions) {
+    var x = 0;
+    var intervalID = window.setInterval(function () {
 
+       callback();
+
+       if (++x === repetitions) {
+           window.clearInterval(intervalID);
+       }
+    }, delay);
+}
+
+
+
+$(".enter-fullscreen").on("click", function () {
+    toggleFullScreen();
+});
+
+function toggleFullScreen () {
+  if (!document.fullscreenElement &&    // alternative standard method
+      !document.mozFullScreenElement && !document.webkitFullscreenElement && !document.msFullscreenElement ) {  // current working methods
+    if (document.documentElement.requestFullscreen) {
+      document.documentElement.requestFullscreen();
+    } else if (document.documentElement.msRequestFullscreen) {
+      document.documentElement.msRequestFullscreen();
+    } else if (document.documentElement.mozRequestFullScreen) {
+      document.documentElement.mozRequestFullScreen();
+    } else if (document.documentElement.webkitRequestFullscreen) {
+      document.documentElement.webkitRequestFullscreen(Element.ALLOW_KEYBOARD_INPUT);
+    }
+  } else {
+    if (document.exitFullscreen) {
+      document.exitFullscreen();
+    } else if (document.msExitFullscreen) {
+      document.msExitFullscreen();
+    } else if (document.mozCancelFullScreen) {
+      document.mozCancelFullScreen();
+    } else if (document.webkitExitFullscreen) {
+      document.webkitExitFullscreen();
+    }
+  }
+}
