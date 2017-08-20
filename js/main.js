@@ -244,6 +244,9 @@ var EM = new EmotionManager();
 var emGrid =  d3.select("#emotion-history-grid svg");
 var emGradient =  d3.select("#emotion-gradient svg");
 var emGradientBottom =  d3.select("#emotion-gradient-bottom svg");
+var imgSearch = d3.select("#image-search svg")
+imgSearch.append('svg:image')
+    .attr('xlink:href', imageSearch.URL)
 
 // list of color blocks
 var colorsList = [];
@@ -449,6 +452,8 @@ function getResponse () {
             renderGradient(newCol);
             //particlesModule.setWallRadius(0, data.emotion_degree);
         }
+
+        imageSearch(data.output);
         
         prevOutput = data.output;
         prevCs = data.cs;
@@ -577,6 +582,20 @@ function addToHistory (newCol) {
     colorsList.push(newRect);
 }
 
+
+/*
+  displays image from pixabay search
+*/
+function imageSearch (search) {
+  var API_KEY = '6180411-6a29a702f13cf568fcf05eb38';
+  var URL = "https://pixabay.com/api/?key=" + API_KEY + "&q=" + encodeURIComponent(search);
+  $.getJSON(URL, function(data){
+    if (parseInt(data.totalHits) > 0)
+        $.each(data.hits, function(i, hit){ console.log(hit.webformatURL); });
+    else
+        console.log('No hits');
+  });
+}
 /* ========================================================================== */
 
 /* ========================================================================== */
