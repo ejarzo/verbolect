@@ -238,116 +238,85 @@ d3.selectAll(".module").append("svg")
                         .attr("width", "100%")
                         .attr("height", "100%");
 
+// emotion manager
 var EM = new EmotionManager();
-
-// module variables
-
-
-// list of color blocks
-//var colorsList = [];
 
 // the modules
 var particlesModule,
     historyModule,
-    gradientModule;
+    gradientModule,
+    imageModule;
 
 /* ========================================================================== */
 /* =========================== GRADIENT CLASS =============================== */
 
 class Gradient {
     constructor () {
+        this.gradientTopSvg = d3.select("#emotion-gradient svg");
+        this.gradientBottomSvg =  d3.select("#emotion-gradient-bottom svg");
 
-        this.emGradientTop = d3.select("#emotion-gradient svg");
-        this.emGradientBottom =  d3.select("#emotion-gradient-bottom svg");
-
+        this.gradientTop;
         this.gradientBottom;
-        this.gradient;
         this.transitionDuration = 500;
+
+        this.prevCol = "#000";
+        this.prevPrevCol = "#000"
     }
 
-    renderNewGradient (newCol) {
-        var width = "100%";
-        var prevCol = "#000";
-        
-        var colorsList = historyModule.colorsList;
-
-        if(colorsList.length > 1) {
-            var prevRect = colorsList[colorsList.length - 1];
-            //console.log(prevRect)
-            prevCol = colorsList[colorsList.length - 1].attr("fill");
-        }
-        
+    /*
+        adds a color to the gradient, animates from left to right
+    */
+    addColor (newCol) {
+        var colorsList = historyModule.colorsList;        
         var gradientTransition = d3.transition()
             .duration(this.transitionDuration)
-            .ease(d3.easeSinInOut);
-        
-        gradientTransition.on("end", function() {
-            console.log("ended");
-            historyModule.addToHistory(newCol);
-        })
+            .ease(d3.easeSinInOut)
+            .on("end", () => {
+                historyModule.addColor(newCol);
+            })
 
         d3.select("#emotion-gradient").style("width", "0%");
         d3.select("#emotion-gradient").transition(gradientTransition).style("width", "100%");
+        
+        if (this.gradientTop) {this.gradientTop.remove();}
+        if (this.gradientBottom) {this.gradientBottom.remove();}
 
-        if (this.gradient) {
-            this.gradient.remove();
-        }
+        this.gradientTop = this.makeGradient(this.gradientTopSvg, "gradient-top", this.prevCol, newCol);
+        this.gradientBottom = this.makeGradient(this.gradientBottomSvg, "gradient-bottom", this.prevPrevCol, this.prevCol);
+        
+        this.prevPrevCol = this.prevCol;
+        this.prevCol = newCol;
+    }
 
-        if (this.gradientBottom) {
-            this.gradientBottom.remove();
-        }
-
-        // TODO CLEAN
-        this.gradient = this.emGradientTop.append("linearGradient")
-                            .attr("id", "gradient")
+    /*
+        renders a gradient in the target svg
+    */
+    makeGradient(target, idName, startCol, endCol) {
+        var width = "100%"
+        var result = target.append("linearGradient")
+                            .attr("id", "" + idName + "")
                             .attr("x1", "0")
                             .attr("y1", "0")
-                            .attr("x2", width)
+                            .attr("x2", "100%")
                             .attr("y2", "0")
                             .attr("spreadMethod", "pad");
 
-        this.gradient.append("stop")
+        result.append("stop")
             .attr("offset", 0)
-            .attr("stop-color", prevCol)
+            .attr("stop-color", startCol)
             .attr("stop-opacity", 1);
 
-        this.gradient.append("stop")
+        result.append("stop")
             .attr("offset", width)
-            .attr("stop-color", newCol)
+            .attr("stop-color", endCol)
             .attr("stop-opacity", 1);
 
-        this.emGradientTop.append("rect")
+        target.append("rect")
             .attr("width", "100%")
             .attr("height", "100%")
-            .style("fill", "url(#gradient)");
-        
-        var prevPrevCol = "#000";
-        if (colorsList.length > 2) {
-            prevPrevCol = colorsList[colorsList.length - 2].attr("fill");
-        }
-        
-        this.gradientBottom = this.emGradientBottom.append("linearGradient")
-                            .attr("id", "gradient-bottom")
-                            .attr("x1", "0%")
-                            .attr("y1", "0%")
-                            .attr("x2", "100%")
-                            .attr("y2", "0%")
-                            .attr("spreadMethod", "pad");
+            .style("fill", "url(#" + idName + ")");
 
-        this.gradientBottom.append("stop")
-            .attr("offset", "0%")
-            .attr("stop-color", prevPrevCol)
-            .attr("stop-opacity", 1);
-
-        this.gradientBottom.append("stop")
-            .attr("offset", "100%")
-            .attr("stop-color", prevCol)
-            .attr("stop-opacity", 1);
-
-        this.emGradientBottom.append("rect")
-            .attr("width", "100%")
-            .attr("height", "100%")
-            .style("fill", "url(#gradient-bottom)");
+        return result;
     }
 }
 
@@ -366,8 +335,7 @@ class History {
     /*
       adds a color block to the conversation history module
     */
-    
-    addToHistory (newCol) {
+    addColor (newCol) {
         var len = this.colorsList.length;
         if (!len) {len = 1;}
 
@@ -465,7 +433,7 @@ class Particles {
         this.gravity = (alpha) => {
           for (var i = 0; i < nodes.length; i++) {
             let p = nodes[i]
-            p.vy += Math.min(0.5, Math.max(0, (p.y - (- height / 2 - 10)) / height ))
+            p.vy += Math.min(0.5, Math.max(0, (p.y - (- height / 2 - 20)) / height ))
             /*if(recycle && p.y < - height / 2) {
               p.x = 2 * width * (Math.random() - 0.5) // double wide area for slow rain
               p.vx = Math.random() - 0.5
@@ -476,29 +444,21 @@ class Particles {
         }
 
         this.dumpColors = (rectList) => {
-            console.log(rectList);
-            
-
-
             for (let i = 1; i < rectList.length; i++) {
                 let rect = rectList[i];
                 let x = rect.attr("x");
                 let bbox = rect.node().getBoundingClientRect();
                 let combinedRadius = nodeRadius + nodeBuffer;
                 let numNodesPerColor = Math.floor(bbox.width / (2 * combinedRadius))
-                
-                console.log(numNodesPerColor);
-                console.log(bbox);
-                
+
                 setIntervalX( () => {
                     for (var i = 0; i < numNodesPerColor; i++) {
                         var x = bbox.left + i * 2 * (combinedRadius);
-                        var y = height/-2;
-                        x = x-width/2 + combinedRadius;
-                        console.log(x);
+                        var y = height/-2 + combinedRadius;
+                        x = x - width/2;
                         this.addNode(rect.attr("fill"), x, y)
                     }
-                }, 100, 7);
+                }, 300, 3);
             }
 
         }
@@ -711,6 +671,57 @@ class Particles {
 }
 
 /* ========================================================================== */
+/* ============================ IMAGE CLASS ================================= */
+
+
+class ImageDisplay {
+    constructor () {
+        //this.svg = d3.select("#image-module svg");
+        this.width = 640;
+        this.height = 400;
+        this.canvas = d3.select("body").append("canvas")
+            .attr("width", this.width)
+            .attr("height", this.height);
+
+        this.context = this.canvas.node().getContext("2d");
+
+        this.image;
+    }
+
+    addImage (url) {
+
+/*        if (this.image) {
+            this.image.remove();
+        }*/
+
+        this.getImage(url, (image) => {
+            this.context.drawImage(image, 0, 0, this.width, this.height);
+            this.image = this.context.getImageData(0, 0, this.width, this.height);
+            
+            // Rescale the colors.
+            for (var i = 0, n = this.width * this.height * 4, d = this.image.data; i < n; i += 4) {
+              d[i + 0] += 20;
+              d[i + 1] += 20;
+              d[i + 2] += 20;
+            }
+
+            this.context.putImageData(this.image, 0, 0);
+        });       
+
+        console.log(this.image);
+        //this.image = this.svg.append('image').attr('xlink:href', url)
+        //console.log(this.image)
+    }
+
+    getImage(path, callback) {
+      var imgObj = new Image;
+      imgObj.onload = function() { callback(imgObj); };
+      imgObj.src = path;
+      imgObj.setAttribute('crossOrigin', '');
+      //image.src = path;
+    }
+}
+/* ========================================================================== */
 /* ========================== DOCUMENT READY ================================ */
 
 /* execute on page load*/
@@ -720,7 +731,7 @@ $(document).on("ready", function () {
     gradientModule = new Gradient();
     historyModule = new History();
     particlesModule = new Particles();
-    
+    imageModule = new ImageDisplay();
 
     // add a bunch of nodes for testing
 /*    var i = 0;
@@ -789,10 +800,27 @@ function getResponse () {
         var newCol = rgbToHex(EM.getColorForEmotion(data.emotion));
 
         if (data.interaction_count > 0) {
-            gradientModule.renderNewGradient(newCol);
+            gradientModule.addColor(newCol);
             //particlesModule.setSpinnerRadius(0, data.emotion_degree);
         }
         
+        var imageQuery = data.emotion;
+        var imageUrl = "https://pixabay.com/api/?key="+PIXABAY_API_KEY+"&q="+encodeURIComponent(data.emotion);
+        
+        $.getJSON(imageUrl, function(data){
+            if (parseInt(data.totalHits) > 0){
+                let max = (data.totalHits >= 20) ? 20 : data.totalHits;
+                let index = Math.floor(Math.random() * max);
+                console.log(index)
+                imageModule.addImage(data.hits[index].webformatURL);
+                /*$.each(data.hits, function(i, hit){
+                    console.log(hit.webformatURL); 
+                });*/
+            }
+            else
+                console.log('No hits');
+        });
+
         prevOutput = data.output;
         prevCs = data.cs;
     });
