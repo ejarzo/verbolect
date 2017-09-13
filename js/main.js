@@ -233,11 +233,6 @@ class EmotionManager {
 var prevOutput = "Hello";
 var prevCs = "";
 
-// add svg canvas to all modules
-d3.selectAll(".module").append("svg")
-                        .attr("width", "100%")
-                        .attr("height", "100%");
-
 // emotion manager
 var EM = new EmotionManager();
 
@@ -246,6 +241,17 @@ var particlesModule,
     historyModule,
     gradientModule,
     imageModule;
+
+var overlayModule;
+
+const totalWidth = 1000;
+
+/* ========================================================================== */
+/* =========================== OPTIONS ==================================== */
+const USE_OVERLAY = false;          // "eye" circle
+const USE_VOICE = false;
+const USE_IMAGES = false;           // call image database
+const USE_IMAGE_EFFECT = false;     // pixelation effect
 
 /* ========================================================================== */
 /* =========================== GRADIENT CLASS =============================== */
@@ -260,7 +266,7 @@ class Gradient {
         this.transitionDuration = 500;
 
         this.prevCol = "#000";
-        this.prevPrevCol = "#000"
+        this.prevPrevCol = "#000";
     }
 
     /*
@@ -385,23 +391,29 @@ class Particles {
 
         /* --------------------------- FUNCTIONS ---------------------------- */
 
+        this.initSimulation = () => {
+            spinner = spinner.data(spinners);
+            floor = floor.data(floors);
+            platform = platform.data(platforms);
+
+            spinner.exit().remove();
+            floor.exit().remove();
+            platform.exit().remove();
+
+            spinner = spinner.enter().append("circle").attr("fill", "#000").attr("stroke", "#fff").attr("stroke-width", 0).merge(spinner);
+            floor = floor.enter().append("circle").attr("fill", "#fff").merge(floor);
+            platform = platform.enter().append("circle").attr("fill", (d) => d.fill).merge(platform);
+        }
+
         /* restarts the simulation */
         this.restart = () => {
             // Apply the general update pattern to the nodes.
             node = node.data(nodes);
-            spinner = spinner.data(spinners);
-            floor = floor.data(floors);
-
             node.exit().remove();
-            spinner.exit().remove();
-            floor.exit().remove();
-
             node = node.enter().append("circle").attr("fill", (d) => d.color).attr("r", nodeRadius).merge(node);
-            spinner = spinner.enter().append("circle").attr("fill", "#000").attr("stroke", "#fff").attr("stroke-width", 0).merge(spinner);
-            floor = floor.enter().append("circle").attr("fill", "#fff").merge(floor);
-
+            
             // Update and restart the simulation.
-            simulation.nodes(floors.concat(spinners.concat(nodes)));
+            simulation.nodes(getForceNodes());
             simulation.force("gravity", this.gravity);
             simulation.force("setSpinnerPos", this.setSpinnerPos)
 
@@ -410,9 +422,18 @@ class Particles {
 
         /* renders the canvas, every frame */
         this.ticked = () => {
-            node.attr("cx", (d) => { return d.x = Math.max(width/-2 + nodeRadius, Math.min(width/2 - nodeRadius, d.x)); })
-                .attr("cy", (d) => { return d.y = Math.max(height/-2 + nodeRadius, Math.min(height/2 - nodeRadius, d.y)); })
-                .attr("r", (d) => d.radius);
+            node.attr("cx", (d) => { return d.x})
+                .attr("cy", (d) => { return d.y})
+                .attr("r", (d) => d.radius)
+                .attr("fill", (d) => {
+                    var rgb = hexToRgb(d.color);
+                    // add flicker
+                    return rgbToHex({
+                        r: parseInt(rgb.r * ((Math.random() * 0.5 + .5))),
+                        g: parseInt(rgb.g * ((Math.random() * 0.5 + .5))),
+                        b: parseInt(rgb.b * ((Math.random() * 0.5 + .5)))
+                    });
+                });
             
             spinner.attr("cx", (d) => d.x)
                 .attr("cy", (d) => d.y)
@@ -422,6 +443,10 @@ class Particles {
                 .attr("cy", (d) => d.y)
                 .attr("rx", (d) => d.radius)
                 .attr("ry", 10);
+
+            platform.attr("cx", (d) => d.x)
+                .attr("cy", (d) => d.y)
+                .attr("r", (d) => d.radius);
         }
 
         /* adds node to the canvas */
@@ -433,34 +458,31 @@ class Particles {
         this.gravity = (alpha) => {
           for (var i = 0; i < nodes.length; i++) {
             let p = nodes[i]
+            
+            // bound within box
+            p.x = Math.max(nodeRadius, Math.min(width - nodeRadius, p.x));
+            p.y = Math.max(nodeRadius, Math.min(height - nodeRadius, p.y));
+
+            // gravity
             p.vy += Math.min(0.5, Math.max(0, (p.y - (- height / 2 - 20)) / height ))
-            /*if(recycle && p.y < - height / 2) {
-              p.x = 2 * width * (Math.random() - 0.5) // double wide area for slow rain
-              p.vx = Math.random() - 0.5
-              p.vy = -10
-              p.y = height / 2
-            }*/
           }
         }
 
         this.dumpColors = (rectList) => {
             for (let i = 1; i < rectList.length; i++) {
-                let rect = rectList[i];
-                let x = rect.attr("x");
-                let bbox = rect.node().getBoundingClientRect();
-                let combinedRadius = nodeRadius + nodeBuffer;
-                let numNodesPerColor = Math.floor(bbox.width / (2 * combinedRadius))
+                const rect = rectList[i],
+                      bbox = rect.node().getBoundingClientRect(),
+                      combinedRadius = nodeRadius + nodeBuffer,
+                      numNodesPerColor = Math.floor(totalWidth / (2 * combinedRadius));
 
                 setIntervalX( () => {
-                    for (var i = 0; i < numNodesPerColor; i++) {
-                        var x = bbox.left + i * 2 * (combinedRadius);
-                        var y = height/-2 + combinedRadius;
-                        x = x - width/2;
+                    for (let i = 0; i < numNodesPerColor; i++) {
+                        const x = 0 + i * 2 * (combinedRadius);
+                        const y = height/-2 + combinedRadius;
                         this.addNode(rect.attr("fill"), x, y)
                     }
-                }, 300, 3);
+                }, 100, 5);
             }
-
         }
 
         this.clear = () => {
@@ -468,25 +490,30 @@ class Particles {
             this.restart();
         }
 
-        this.setSpinnerRadius = (i, r, amount) => {
-           /* setIntervalX ( () => {
-                walls[i].radius += amount;
-                this.restart();
-            }, 20, 40);*/
+        this.setSpinnerRadius = (i, r) => {
+
         }
+        
+        this.setSpinnerSpeed = (i, s) => {
+            if (i == 0) {
+                spinner1Speed = s;
+            } else {
+                spinner2Speed = s;
+            }
+        } 
         
         this.setSpinnerPos = () => {
             var circle1Center = getCircleCenter(d3.select(".spinner1"))
             var circle2Center = getCircleCenter(d3.select(".spinner2"))
             
-            floors[0].x = 0;
+            floors[0].x = midX;
             floors[0].y = floorY;
+
+            spinners[0].x = circle1Center.x;
+            spinners[0].y = circle1Center.y;
             
-            spinners[0].x = circle1Center.x - width / 2;
-            spinners[0].y = circle1Center.y - height / 2;
-            
-            spinners[1].x = circle2Center.x - width / 2;
-            spinners[1].y = circle2Center.y - height / 2;  
+            spinners[1].x = circle2Center.x;
+            spinners[1].y = circle2Center.y;  
         }
 
         /* ------------------------------------------------------------------ */
@@ -513,13 +540,13 @@ class Particles {
             var spinner1 = spinnerCircles.append("circle")
                 .attr("r", 15)
                 .attr("cx", cx1)
-                .attr("cy", 30)
+                .attr("cy", height / 2 - spinner1Radius)
                 .attr("class", "spinner1");
 
             var spinner2 = spinnerCircles.append("circle")
                 .attr("r", 15)
                 .attr("cx", cx2)
-                .attr("cy", 30)
+                .attr("cy", height / 2 - spinner2Radius)
                 .attr("class", "spinner2");
 
             // the lines tha connect the circles
@@ -548,15 +575,14 @@ class Particles {
                 .attr("y1", height)
                 .attr("class", "edge-bottom-right")
 
-            // begin animation
-            this.animateSpinners();
+            edges.attr("stroke-width", 0);
         }
 
         this.animateSpinners = () => {
             if (mode === 0) {
                 d3.timer(function() {
-                    var angle1 = ((Date.now() - start) / 10);
-                    var angle2 = ((Date.now() - start) / 9);
+                    var angle1 = ((Date.now() - start) / spinner1Speed);
+                    var angle2 = ((Date.now() - start) / spinner2Speed);
                     
                     var transformCircle1 = function() {
                         return "rotate(" + angle1 + "," + width / 4 + "," + height / 2 +")";
@@ -605,17 +631,21 @@ class Particles {
                 mode = 0;
             }
         }
+
         /* --------------------------- VARIABLES ---------------------------- */
         
         // setup
         var svg = d3.select("#particles svg"),
             bbox = svg.node().getBoundingClientRect(),
-            width = bbox.width,
-            height = bbox.height,
-            nodeRadius = 6,
+            width = $(".modules").width(),
+            height = 400,
+            midX = width / 2,
+            midY = height / 2,
+            nodeRadius = 8,
+            nodeBuffer = 1,
             spinnerRadius = 50,
             floorRadius = 10000,
-            floorY = floorRadius - 8 + height/2
+            floorY = floorRadius + height - 8;
 
         // items in the simulation
         var nodes = [],
@@ -626,91 +656,182 @@ class Particles {
             floors = [
                 {radius: floorRadius},
                 //{fx: width/2,  fy: 0, rx: floorRadius, ry: 10},
-            ];
+            ],
+            platforms = this.generatePlatform(0, 40, 200, 100).concat(
+                        this.generatePlatform(width, 40, width - 200, 100)).concat(
+                        this.generatePlatform(midX - 50, midY, midX + 50, midY));
+
+        // combine simulation items into single array
+        var getForceNodes = () => platforms.concat(floors.concat(spinners.concat(nodes)));
 
         // simulation vars
         var aDecay = 0.1,
             vDecay = 0.05,
-            chargeStrength = -1,
+            chargeStrength = 0,
             gravityStrength = 0.03,
             collideStrength = 1.3,
-            collideIterations = 5,
-            nodeBuffer = 4
+            collideIterations = 3;
 
         // the simulation
-        var simulation = d3.forceSimulation(floors.concat(spinners.concat(nodes)))
+        var simulation = d3.forceSimulation(getForceNodes())
             .alphaDecay(aDecay)
             .velocityDecay(vDecay)
-            //.force("charge", d3.forceManyBody().strength(chargeStrength))
+            .force("charge", d3.forceManyBody().strength(chargeStrength))
             .force("gravity", this.gravity(gravityStrength))
             .force("setSpinnerPos", this.setSpinnerPos)
+            //.force("collide", rectangleCollide)
             .force("collide", d3.forceCollide().radius((d) => {
-                return (d.type == "node") ? (d.radius + /*Math.random() * 0.25 +*/ nodeBuffer) : d.radius;
+                return (d.type == "node") ? (d.radius + nodeBuffer) : d.radius;
             }).iterations(collideIterations).strength((collideStrength)))
             .alphaTarget(1)
             .on("tick", this.ticked);
 
-        var g = svg.append("g").attr("transform", "translate(" + width / 2 + "," + height / 2 + ")"),
-            node = g.append("g").selectAll(".node"),
-            spinner = g.append("g").selectAll(".spinner"),
-            floor = g.append("g").selectAll(".floor");
+        // simulation groups
+        var g        = svg.append("g"),
+            node     = g.append("g").selectAll(".node"),
+            spinner  = g.append("g").selectAll(".spinner"),
+            floor    = g.append("g").selectAll(".floor"),
+            platform = g.append("g").selectAll(".platform");
 
         /* ------------------------------------------------------------------ */
 
-        var rotateElements = svg.append("g");
-        var mode = 0;
-        var start = Date.now();
-
+        // spinners
+        var rotateElements = svg.append("g"),
+            mode = 0,
+            start = Date.now(),
+            animateSpinnersActive = true,
+            spinner1Speed = 9,
+            spinner2Speed = 10,
+            spinner1Radius = 100,
+            spinner2Radius = 50;
         /* ------------------------------------------------------------------ */
 
+        // intit 
+        this.initSimulation();
         this.initSpinners();
         this.setSpinnerPos();
-        
+        if (animateSpinnersActive) {
+            this.animateSpinners();
+        }
         this.restart();
+    }
+
+    /*
+        returns an array of circles that, together, form a line that can be used
+        as a platform in the simulation
+    */
+    generatePlatform (x1, y1, x2, y2) {
+        var distance = Math.hypot(x2 - x1, y2 - y1),
+            xStep = (x2 - x1) / distance,
+            yStep = (y2 - y1) / distance,
+            radius = 1,
+            numPts = distance / radius,
+            result = [];
+        
+        // start point
+        //result.push({fx: x1,fy: y1,radius: 5,fill: "#F00"})
+        
+        for (var i = 0; i < numPts; i++) {
+            result.push({
+                fx: i * xStep + x1,
+                fy: i * yStep + y1,
+                radius: 3,
+                fill: "#FFF"
+            })
+        }
+
+        // end point
+        //result.push({fx: x2,fy: y2,radius: 5,fill: "#F00"})
+
+        return result;
     }
 }
 
 /* ========================================================================== */
 /* ============================ IMAGE CLASS ================================= */
 
-
 class ImageDisplay {
     constructor () {
-        //this.svg = d3.select("#image-module svg");
-        this.width = 640;
+        this.drawPoint = (p) => {
+            var c;
+            if (p[0] < this.width/2) {
+                c = this.getColorAtPoint(p[0], p[1], this.imageLeft);
+
+            } else {
+                c = this.getColorAtPoint(p[0], p[1], this.imageRight);
+            }
+            ctx.fillStyle = c;
+            ctx.fillRect(p[0],p[1],10,10);
+        };
+
+        this.step = () => {
+            //ctx.fillStyle = "rgba(255,255,255,0.3)";
+            //ctx.fillStyle = "rgba(0,0,0,0.02)";
+            //ctx.fillRect(0,0,width,height);
+            //ctx.fillStyle = "rgba(0,0,0,0.1)";
+            particles.forEach((p) => {
+                p[0] += Math.round(2*Math.random()-1);
+                p[1] += Math.round(2*Math.random()-1);
+                if (p[0] < 0) p[0] = width;
+                if (p[0] > width) p[0] = 0;
+                if (p[1] < 0) p[1] = height;
+                if (p[1] > height) p[1] = 0;
+                this.drawPoint(p);
+            });
+        };
+
+        var bbox = d3.select("#image-module").node().getBoundingClientRect();
+        this.width = totalWidth;
         this.height = 400;
-        this.canvas = d3.select("body").append("canvas")
-            .attr("width", this.width)
-            .attr("height", this.height);
+        this.canvas = d3.select("#image-module").append("canvas")
+            .attr("width", totalWidth)
+            .attr("height", 400);
 
         this.context = this.canvas.node().getContext("2d");
+        this.imageLeft;
+        this.imageRight;
 
-        this.image;
+        var num = 500;
+        //var canvas = document.getElementById("canvas");
+        var width = totalWidth;
+        var height = 400;
+        //var ctx = this.canvas.getContext("2d");
+        var ctx = this.context;
+
+        var particles = d3.range(num).map(function(i) {
+          return [Math.round(width*Math.random()), Math.round(height*Math.random())];
+        }); 
+        if (USE_IMAGE_EFFECT) {
+            d3.timer(this.step);
+        }
     }
 
-    addImage (url) {
+    addImage (url, isRight) {
+        var xPos = 0;
+        var imgWidth = this.width/2;
 
-/*        if (this.image) {
-            this.image.remove();
-        }*/
-
+        if (isRight) {
+            xPos = this.width/2;
+        }
+        
         this.getImage(url, (image) => {
-            this.context.drawImage(image, 0, 0, this.width, this.height);
-            this.image = this.context.getImageData(0, 0, this.width, this.height);
+            //console.log(image);
+            this.context.drawImage(image, xPos, 0, imgWidth, this.height);
+            if (isRight) {
+                this.imageRight = this.context.getImageData(xPos, 0, imgWidth, this.height);
+            } else {
+                this.imageLeft = this.context.getImageData(xPos, 0, imgWidth, this.height);
+            }
             
             // Rescale the colors.
-            for (var i = 0, n = this.width * this.height * 4, d = this.image.data; i < n; i += 4) {
-              d[i + 0] += 20;
-              d[i + 1] += 20;
-              d[i + 2] += 20;
-            }
+            // for (var i = 0, n = imgWidth * this.height * 4, d = this.image.data; i < n; i += 4) {
+            //   d[i + 0] += 0;
+            //   d[i + 1] += 0;
+            //   d[i + 2] += 0;
+            // }
 
-            this.context.putImageData(this.image, 0, 0);
+            //this.context.putImageData(this.image, xPos, 0);
         });       
-
-        console.log(this.image);
-        //this.image = this.svg.append('image').attr('xlink:href', url)
-        //console.log(this.image)
     }
 
     getImage(path, callback) {
@@ -720,27 +841,105 @@ class ImageDisplay {
       imgObj.setAttribute('crossOrigin', '');
       //image.src = path;
     }
+
+    getColorAtPoint(x, y, imageData) {
+        if (imageData) {
+            var pixelData = this.context.getImageData(x, y, 1, 1).data;
+            return "rgba(" + pixelData[0] + "," +  pixelData[1] + "," +  pixelData[2] + "," +  1 + ")";
+        }
+        return "#000";
+    }
 }
+
+/* ========================================================================== */
+/* ============================ OVERLAY CLASS =============================== */
+
+class Overlay {
+    constructor () {
+        this.ctx = overlay.getContext('2d');
+        this.radius;
+        if (USE_OVERLAY) {
+            this.renderOverlay();
+        }
+        this.currScale = 1;
+    }
+
+    renderOverlay() {
+        const vp = getViewport();
+        overlay.width = 3 * vp[0];
+        overlay.height = 3 * vp[1];
+        $("#overlay").css({"left": -0.33 * overlay.width, "top": -0.33 * overlay.height});
+        this.radius = 500;
+        this.ctx.fillStyle = '#000';
+        
+        this.ctx.fillRect(-1*overlay.width, -1*overlay.height, overlay.width*2, overlay.height*2);
+        this.clipArc(this.ctx, overlay.width/2, overlay.height/2, this.radius, 10);
+    }
+
+    clipArc(ctx, x, y, r, f) {
+        ctx.globalCompositeOperation = 'destination-out';
+
+        ctx.filter = "blur(40px)";  // "feather"
+        ctx.beginPath();
+        ctx.arc(x, y, r, 0, 2 * Math.PI);
+        ctx.fill();
+
+        // reset comp. mode and filter
+        ctx.globalCompositeOperation = 'destination-out';
+        ctx.filter = "none";
+    }
+
+    setOverlayPos(x, y) {
+        //$("#overlay").animate({"left": x}, 1500);
+        var xBuffer = -0.5*overlay.width;
+        var yBuffer = -0.5*overlay.height;
+        $("#overlay").css({"left": x + xBuffer, "top" : y + yBuffer});
+    }
+    
+    setModulesPos(x, y) {
+        var xBuffer = totalWidth / -2;
+        var yBuffer = $(".modules").height()/-2;
+        $(".modules").css({"left": x + xBuffer, "top" : y + yBuffer});
+    }
+
+/*    zoomIn () {
+        this.currScale += 0.1;
+        this.setScale();
+        //particlesModule.setSpinnerSpeed(1, 3);
+    }
+    zoomOut () {
+        this.currScale -= 0.1;
+        this.setScale();
+    }
+*/
+    animateZoomTo (amount) {
+        console.log("sda");
+        this.currScale += amount;
+        const newTrans = "scale3d("+this.currScale+","+this.currScale+","+this.currScale+")";
+        $(".modules").css("transform", newTrans);  
+    }
+}
+
 /* ========================================================================== */
 /* ========================== DOCUMENT READY ================================ */
 
 /* execute on page load*/
-$(document).on("ready", function () {
-    
+$(document).on("ready", function () {  
+
+    // add svg canvas to all modules
+    d3.selectAll(".module").append("svg")
+                            .attr("width", "100%")
+                            .attr("height", "100%");
+
     // init modules
     gradientModule = new Gradient();
     historyModule = new History();
     particlesModule = new Particles();
     imageModule = new ImageDisplay();
+    overlayModule = new Overlay();
 
-    // add a bunch of nodes for testing
-/*    var i = 0;
-    while (i++ < 400) {
-        particlesModule.addNode(EM.getColorForEmotionIndex(Math.floor(Math.random() * 7)), 0, 0);
-        //particlesModule.addNode("#00f", 0, 0);
-    }*/
-
-    getResponse();
+    // start with one response
+    //getResponse();
 })
 
 /* ========================================================================== */
@@ -748,8 +947,16 @@ $(document).on("ready", function () {
 
 /* handler for key presses */
 $(window).keypress(function(e) {
+
     if (e.which === 32) { // space bar
         getResponse();
+    }
+    if (e.which === 122) { // z
+        overlayModule.animateZoomTo(-0.3)
+        //overlayModule.zoomIn();
+    }
+    if (e.which === 120) { // x
+        overlayModule.animateZoomTo(0.3)
     }
 });
 
@@ -766,6 +973,11 @@ $(".enter-fullscreen").on("click", function () {
     toggleFullScreen();
 });
 
+$(document).on("mousemove", function(e) {
+    overlayModule.setOverlayPos(e.clientX, e.clientY);
+    //overlayModule.setModulesPos(e.clientX, e.clientY);
+})
+
 /* ========================================================================== */
 /* =========================== GET RESPONSE ================================= */
 
@@ -774,90 +986,110 @@ $(".enter-fullscreen").on("click", function () {
 */
 function getResponse () {
 
-    //particlesModule.addNode(EM.getColorForEmotionIndex(Math.floor(Math.random() * 7)), 0, 0);
-    //return;
-
     $(".loading-spinner").show();
     
-    var stringWithoutSpaces = prevOutput.replace(/\s/g, '+');
+    var stringWithoutSpaces = encodeURIComponent(prevOutput)
+    //.replace(/\s/g, '+');
     var url = "http://www.cleverbot.com/getreply?key=" + APIKEY + "&input=" + 
                 stringWithoutSpaces + "&cs=" + prevCs + "&cb_settings_emotion=yes";
     
     $.getJSON(url, function(data) {
         $(".loading-spinner").hide();
         var emotionCategory = EM.getEmotionCategory(data.emotion);
-        //var interactionCount = getInteractionCount(data.interaction_count);
         
         //console.log(data);
-        console.log(data);
-        console.log("OUTPUT: ", data.output);
-        console.log("EMOTION: ", data.emotion);
-        console.log("IN CATEGORY: ", emotionCategory);
-        console.log("INTERACTION COUNT: ", data.interaction_count)
+        if (true) {
+            console.log(data);
+            console.log("OUTPUT: ", data.output);
+            console.log("EMOTION: ", data.emotion);
+            console.log("IN CATEGORY: ", emotionCategory);
+            console.log("INTERACTION COUNT: ", data.interaction_count)
+        }
 
-        $(".conversation-text").html(data.output);
+        let isRight = true;
+        if (data.interaction_count % 2) {
+            typeWriter(".text-output-l", data.output, 0)
+            isRight = false;
+        } else {
+            typeWriter(".text-output-r", data.output, 0)
+        }
 
         var newCol = rgbToHex(EM.getColorForEmotion(data.emotion));
 
         if (data.interaction_count > 0) {
             gradientModule.addColor(newCol);
-            //particlesModule.setSpinnerRadius(0, data.emotion_degree);
         }
 
-        imageSearch(data.output);
-        
-        var imageQuery = data.emotion;
-        var imageUrl = "https://pixabay.com/api/?key="+PIXABAY_API_KEY+"&q="+encodeURIComponent(data.emotion);
-        
-        $.getJSON(imageUrl, function(data){
-            if (parseInt(data.totalHits) > 0){
-                let max = (data.totalHits >= 20) ? 20 : data.totalHits;
-                let index = Math.floor(Math.random() * max);
-                console.log(index)
-                imageModule.addImage(data.hits[index].webformatURL);
-                /*$.each(data.hits, function(i, hit){
-                    console.log(hit.webformatURL); 
-                });*/
-            }
-            else
-                console.log('No hits');
-        });
+        if (USE_VOICE) {
+            responsiveVoice.speak(data.output);
+        }
+
+        if (USE_IMAGES) {
+            var imageQuery = data.emotion;
+            var imageUrl = "https://pixabay.com/api/?key="+PIXABAY_API_KEY+"&q="+encodeURIComponent(data.emotion);
+            
+            $.getJSON(imageUrl, function(data){
+                if (parseInt(data.totalHits) > 0){
+                    let max = (data.totalHits >= 20) ? 20 : data.totalHits;
+                    let index = Math.floor(Math.random() * max);
+                    //console.log(data.hits[index]);
+                    imageModule.addImage(data.hits[index].webformatURL, isRight);
+                    /*$.each(data.hits, function(i, hit){
+                        console.log(hit.webformatURL); 
+                    });*/
+                }
+                else
+                    console.log('No hits');
+            });
+        }
 
         prevOutput = data.output;
         prevCs = data.cs;
     });
 }
 
-
-
-/*
-  displays image from pixabay search
-*/
-function imageSearch (search) {
-  var API_KEY = '6180411-6a29a702f13cf568fcf05eb38';
-  var URL = "https://pixabay.com/api/?key=" + API_KEY + "&q=" + encodeURIComponent(search);
-  $.getJSON(URL, function(data){
-    if (parseInt(data.totalHits) > 0)
-        $.each(data.hits, function(i, hit){ console.log(hit.webformatURL); });
-    else
-        console.log('No hits');
-  });
-}
 /* ========================================================================== */
 /* ============================== HELPER ==================================== */
 
 
+function SayText () {
+
+    var voice = "BRITISHDANIEL";
+    var sentence = "hello there";
+    var ttsfile = "http://87.117.198.123:7777/ttsmakeavatartest.php?voice=" + voice;
+    //if (voice == 'PEWDIEPIE') ttsfile = "http://78.129.245.15:7777/ttsmakeavatartest.php?voice=" + voice; //use Ayeaye for Pewdiepie 16/12/2016
+    ttsfile += "&sx=" + "" +  + "&jsonp=?" + "&sentence=" + "HELLO" /*encodeURIComponent (sentence)*/;
+    //cleverbot.ttsfile = ttsfile; cleverbot.playTTS();
+    
+    //var el = document.getElementById ('showcommand');
+    //var obj = new XMLHttpRequest(); //start a new request
+    //obj.onreadystatechange = function() {
+    //    if (obj.readyState!=4) return;
+    //    if (obj.status==200) el.innerHTML = obj.responseText;
+    //};
+    //obj.open ('GET', ttsfile + '&debug=1', true); //run again but with debug=1 to get the command output
+    //obj.send(); //send the parameters
+    
+    $.getJSON(ttsfile, function(data){
+        console.log(data);
+    });
+}
+
+function generateNRandomNodes (n) {
+    var i = 0;
+    while (i++ < n) {
+        particlesModule.addNode(EM.getColorForEmotionIndex(Math.floor(Math.random() * 7)), 0, 0);
+        //particlesModule.addNode("#00f", 0, 0);
+    }
+}
 /*
-  helper for hex converter
+  hex to rgb and vice versa
 */
 function componentToHex(c) {
     var hex = c.toString(16);
     return hex.length == 1 ? "0" + hex : hex;
 }
 
-/* 
-  converts {r,g,b} object to hex color
-*/
 function rgbToHex(col) {
     var r = col.r;
     var g = col.g;
@@ -866,9 +1098,15 @@ function rgbToHex(col) {
     return "#" + componentToHex(r) + componentToHex(g) + componentToHex(b);
 }
 
-/*
-    executes the callback function "repetitions" times, after a delay
-*/
+function hexToRgb(hex) {
+    var result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+    return result ? {
+        r: parseInt(result[1], 16),
+        g: parseInt(result[2], 16),
+        b: parseInt(result[3], 16)
+    } : null;
+}
+
 function setIntervalX(callback, delay, repetitions) {
     var x = 0;
     var intervalID = window.setInterval(function () {
@@ -896,6 +1134,24 @@ function getCircleCenter (circle) {
     }
 }
 
+function typeWriter(target, text, n) {
+  if (n < (text.length)) {
+    $(target).html(text.substring(0, n+1));
+    n++;
+    setTimeout(function() {
+      typeWriter(target, text, n)
+    }, 100);
+  }
+}
+
+$('.start').click(function(e) {
+  e.stopPropagation();
+  
+  var text = $('.test').data('text');
+  
+  typeWriter(text, 0);
+});
+
 /*
     toggles browser fullscreen mode
 */
@@ -922,4 +1178,31 @@ function toggleFullScreen () {
       document.webkitExitFullscreen();
     }
   }
+}
+
+function getViewport() {
+
+    var viewPortWidth;
+    var viewPortHeight;
+
+    // the more standards compliant browsers (mozilla/netscape/opera/IE7) use window.innerWidth and window.innerHeight
+    if (typeof window.innerWidth != 'undefined') {
+        viewPortWidth = window.innerWidth,
+        viewPortHeight = window.innerHeight
+    }
+
+    // IE6 in standards compliant mode (i.e. with a valid doctype as the first line in the document)
+    else if (typeof document.documentElement != 'undefined'
+    && typeof document.documentElement.clientWidth !=
+    'undefined' && document.documentElement.clientWidth != 0) {
+        viewPortWidth = document.documentElement.clientWidth,
+        viewPortHeight = document.documentElement.clientHeight
+    }
+
+    // older versions of IE
+    else {
+        viewPortWidth = document.getElementsByTagName('body')[0].clientWidth,
+        viewPortHeight = document.getElementsByTagName('body')[0].clientHeight
+    }
+    return [viewPortWidth, viewPortHeight];
 }

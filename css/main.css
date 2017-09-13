@@ -3,53 +3,66 @@ html {
   font-size: 1em;
   line-height: 1.4;
   font-family: "Inconsolata", monospace;
-  background: #000; }
+  background: #000;
+  height: 100%;
+  width: 100%; }
 
 #controls {
+  position: fixed;
   top: 0;
   left: 0;
-  background: #222;
   color: #777;
-  padding: 10px; }
+  padding: 0px;
+  height: 10px;
+  text-align: top;
+  font-size: 10px;
+  z-index: 2000; }
   #controls button {
     border: 1px solid #777;
     background: none; }
+  #controls .loading-spinner {
+    position: absolute;
+    left: 220px;
+    top: 3px;
+    display: none; }
 
-.menu-toggle {
-  background: none;
-  border: none;
-  color: #fff; }
-
-#show-menu {
+.modules {
+  transition: 0.5s;
+  -webkit-transition: all 0.5s;
+  margin: 0;
+  width: 1000px;
+  height: auto;
   position: absolute;
-  z-index: 10;
-  background: none;
-  border: none;
-  color: #fff; }
+  border: 2px solid #777;
+  -webkit-transform: scale3d(1, 1, 1); }
+  .modules .module {
+    height: 50px;
+    background: #000; }
+  .modules #emotion-gradient {
+    overflow: hidden;
+    position: relative; }
+    .modules #emotion-gradient svg {
+      width: 100vw; }
+  .modules #emotion-gradient-bottom {
+    background: #ddd;
+    margin-bottom: -50px; }
+  .modules #particles {
+    height: 400px;
+    background: #000; }
+  .modules #image-module {
+    height: 400px; }
+  .modules .text-output {
+    color: #FFF;
+    padding: 10px;
+    min-height: 60px;
+    font-size: 30px; }
+    .modules .text-output .text-output-r {
+      text-align: right; }
+    .modules .text-output .text-output-l {
+      float: left; }
 
-.loading-spinner {
-  display: none; }
-
-.module {
-  height: 50px;
-  background: #000; }
-
-#particles {
-  height: 400px;
-  background: #000; }
-
-#emotion-gradient {
-  overflow: hidden;
-  position: relative; }
-  #emotion-gradient svg {
-    width: 100vw; }
-
-#emotion-gradient-bottom {
-  background: #ddd;
-  margin-bottom: -50px; }
-
-#image-module {
-  height: 400px;
-  background: #ddd; }
+#overlay {
+  position: fixed;
+  z-index: 1000; }
 
 /*# sourceMappingURL=main.css.map */

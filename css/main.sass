@@ -9,52 +9,71 @@ html
     line-height: 1.4
     font-family: 'Inconsolata', monospace
     background: #000
+    //transform: scale(1)
+    height: 100%
+    width: 100%
 
 #controls
-    //position: absolute
+    position: fixed
     top: 0
     left: 0
-    background: #222
     color: #777
-    //border-bottom: 8px solid #000
-    padding: 10px
+    padding: 0px
+    height: 10px
+    text-align: top
+    font-size: 10px
+    z-index: 2000
     button
         border: 1px solid #777
         background: none
+    .loading-spinner
+        position: absolute
+        left: 220px
+        top: 3px
+        display: none
 
-.menu-toggle
-    background: none
-    border: none
-    color: #fff
-
-#show-menu
+.modules
+    transition: 0.5s
+    -webkit-transition: all 0.5s
+    //margin-top: 40px
+    margin: 0
+    width: 1000px
+    height: auto
     position: absolute
-    z-index: 10
-    background: none
-    border: none
-    color: #fff
+    border: 2px solid #777
+    -webkit-transform: scale3d(1,1,1)
+    .module
+        height: $module-height
+        background: #000
 
-.loading-spinner
-    display: none
+    #emotion-gradient
+        overflow: hidden
+        position: relative
+        svg
+            width: 100vw
 
-.module
-    height: $module-height
-    background: #000
+    #emotion-gradient-bottom
+        background: #ddd
+        margin-bottom: -50px
+    
+    #particles
+        height: 400px
+        background: #000
 
-#particles
-    height: 400px
-    background: #000
+    #image-module
+        height: 400px
 
-#emotion-gradient
-    overflow: hidden
-    position: relative
-    svg
-        width: 100vw
+    .text-output
+        //position: absolute
+        color: #FFF
+        padding: 10px
+        min-height: 60px
+        font-size: 30px
+        .text-output-r
+            text-align: right
+        .text-output-l
+            float: left
 
-#emotion-gradient-bottom
-    background: #ddd
-    margin-bottom: -50px
-
-#image-module
-    height: 400px
-    background: #ddd
+#overlay
+    position: fixed
+    z-index: 1000
