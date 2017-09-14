@@ -253,6 +253,7 @@ const USE_OVERLAY = false;          // "eye" circle
 const USE_VOICE = false;
 const USE_IMAGES = false;           // call image database
 const USE_IMAGE_EFFECT = false;     // pixelation effect
+const USE_EDGES = false;            // lines connecting the spinners
 
 /* ========================================================================== */
 /* =========================== GRADIENT CLASS =============================== */
@@ -575,7 +576,11 @@ class Particles {
                 .attr("y1", height)
                 .attr("class", "edge-bottom-right")
 
-            edges.attr("stroke-width", 0);
+            if (USE_EDGES) {
+                edges.attr("stroke-width", 2);
+            } else {
+                edges.attr("stroke-width", 0);
+            }
         }
 
         this.animateSpinners = () => {
@@ -856,7 +861,7 @@ class CanvasSketch {
     constructor () {
         const width = totalWidth;
         const height = 400;
-        
+
         this.canvas = d3.select("#canvas-sketch").append("canvas")
             .attr("width", width)
             .attr("height", height);
@@ -962,7 +967,7 @@ $(document).on("ready", function () {
     overlayModule = new Overlay();
 
     // start with one response
-    //getResponse();
+    getResponse();
 })
 
 /* ========================================================================== */
@@ -1016,37 +1021,46 @@ function getResponse () {
     var url = "http://www.cleverbot.com/getreply?key=" + APIKEY + "&input=" + 
                 stringWithoutSpaces + "&cs=" + prevCs + "&cb_settings_emotion=yes";
     
-    $.getJSON(url, function(data) {
-        $(".loading-spinner").hide();
-        var emotionCategory = EM.getEmotionCategory(data.emotion);
-        
-        //console.log(data);
+    $.getJSON(url, function(data) {        
         if (true) {
-            console.log(data);
+            //console.log(data);
+            //console.log("INTERACTION COUNT: ", data.interaction_count)
             console.log("OUTPUT: ", data.output);
             console.log("EMOTION: ", data.emotion);
             console.log("IN CATEGORY: ", emotionCategory);
-            console.log("INTERACTION COUNT: ", data.interaction_count)
+            console.log("Emotion Degree: ", data.emotion_degree);
+            console.log("Reaction Degree: ", data.reaction_degree);
         }
 
+        $(".loading-spinner").hide();
+        var emotionCategory = EM.getEmotionCategory(data.emotion);
+        
+        // left or right
         let isRight = true;
         if (data.interaction_count % 2) {
             typeWriter(".text-output-l", data.output, 0)
             isRight = false;
+            
+            particlesModule.setSpinnerSpeed(0, (data.emotion_degree + 1) / 20);
         } else {
             typeWriter(".text-output-r", data.output, 0)
+            
+            particlesModule.setSpinnerSpeed(1, (data.emotion_degree + 1) / 20);
         }
 
-        var newCol = rgbToHex(EM.getColorForEmotion(data.emotion));
 
+        // get color
+        var newCol = rgbToHex(EM.getColorForEmotion(data.emotion));
         if (data.interaction_count > 0) {
             gradientModule.addColor(newCol);
         }
 
+        // speak
         if (USE_VOICE) {
             responsiveVoice.speak(data.output);
         }
 
+        // call image API
         if (USE_IMAGES) {
             var imageQuery = data.emotion;
             var imageUrl = "https://pixabay.com/api/?key="+PIXABAY_API_KEY+"&q="+encodeURIComponent(data.emotion);
