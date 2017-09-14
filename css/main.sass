@@ -1,7 +1,9 @@
 //@import url('https://fonts.googleapis.com/css?family=Inconsolata:400,700')
 
 // variables
-$module-height: 50px
+$module-height: 800px
+$gradient-margin-bottom: -800px
+$total-width: 2000px
 
 html
     color: #222
@@ -9,7 +11,6 @@ html
     line-height: 1.4
     font-family: 'Inconsolata', monospace
     background: #000
-    //transform: scale(1)
     height: 100%
     width: 100%
 
@@ -37,7 +38,7 @@ html
     -webkit-transition: all 0.5s
     //margin-top: 40px
     margin: 0
-    width: 1000px
+    width: $total-width
     height: auto
     position: absolute
     border: 2px solid #777
@@ -50,11 +51,11 @@ html
         overflow: hidden
         position: relative
         svg
-            width: 100vw
+            width: $total-width
 
     #emotion-gradient-bottom
         background: #ddd
-        margin-bottom: -50px
+        margin-bottom: $gradient-margin-bottom
     
     #particles
         height: 400px

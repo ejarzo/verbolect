@@ -245,7 +245,7 @@ var particlesModule,
 
 var overlayModule;
 
-const totalWidth = 1000;
+const totalWidth = 2000;
 
 /* ========================================================================== */
 /* =========================== OPTIONS ==================================== */
@@ -880,8 +880,8 @@ class CanvasSketch {
             this.clearBackground();
             
             if(this.images.length > 0) {
-                var imgXPos = Math.random()*totalWidth/2;
-                var imgWidth = Math.random()*totalWidth;
+                var imgXPos = Math.random()*totalWidth/2 + 1;
+                var imgWidth = Math.random()*totalWidth + 1;
 
                 //imgXPos = 0;
                 //imgWidth = 200;
@@ -977,7 +977,8 @@ class Overlay {
         //$("#overlay").animate({"left": x}, 1500);
         var xBuffer = -0.5*overlay.width;
         var yBuffer = -0.5*overlay.height;
-        $("#overlay").css({"left": x + xBuffer, "top" : y + yBuffer});
+        const animateTime = 300;
+        $("#overlay").animate({"left": x + xBuffer, "top" : y + yBuffer}, animateTime);
     }
     
     setModulesPos(x, y) {
@@ -1013,9 +1014,26 @@ $(document).on("ready", function () {
     canvasSketchModule = new CanvasSketch();
     overlayModule = new Overlay();
 
+
+    // random eye movements
+    (function loop() {
+        var rand = Math.round(Math.random() * (3000 - 500)) + 500;
+        setTimeout(function() {
+                moveEyeToRandomLocation();
+                loop();  
+        }, rand);
+    }());
     // start with one response
     getResponse();
 })
+
+function moveEyeToRandomLocation () {
+    var vp = getViewport();
+    const x = Math.random() * vp[0];
+    const y = Math.random() * vp[1];
+    overlayModule.setOverlayPos(x, y)
+}
+
 
 /* ========================================================================== */
 /* ============================= HANDLERS =================================== */
