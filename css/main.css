@@ -51,6 +51,9 @@ html {
     background: #000; }
   .modules #image-module {
     height: 400px; }
+  .modules #canvas-sketch {
+    background: #ddd;
+    height: 400px; }
   .modules .text-output {
     color: #FFF;
     padding: 10px;

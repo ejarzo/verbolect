@@ -240,7 +240,8 @@ var EM = new EmotionManager();
 var particlesModule,
     historyModule,
     gradientModule,
-    imageModule;
+    imageModule,
+    canvasSketchModule;
 
 var overlayModule;
 
@@ -336,7 +337,6 @@ class History {
         this.blockAddDuration = 800;
         this.blockDumpDuration = 800;
     }
-
 
     /*
       adds a color block to the conversation history module
@@ -851,6 +851,38 @@ class ImageDisplay {
     }
 }
 
+
+class CanvasSketch {
+    constructor () {
+        const width = totalWidth;
+        const height = 400;
+        
+        this.canvas = d3.select("#canvas-sketch").append("canvas")
+            .attr("width", width)
+            .attr("height", height);
+        this.context = this.canvas.node().getContext("2d");
+
+        // draw
+        this.step = () => {
+            this.context.fillStyle = "rgba(0,0,0,1)";
+            this.context.fillRect(0, 0, width, height);
+
+            this.context.fillStyle = "rgba(200,0,0,1)";
+            this.context.fillRect(this.xPos, 10, 10, 10);
+            this.xPos++;
+        };
+
+        // setup
+        this.xPos = 10;
+
+        // start
+        d3.timer(this.step);
+    }
+
+}
+
+
+
 /* ========================================================================== */
 /* ============================ OVERLAY CLASS =============================== */
 
@@ -902,16 +934,6 @@ class Overlay {
         $(".modules").css({"left": x + xBuffer, "top" : y + yBuffer});
     }
 
-/*    zoomIn () {
-        this.currScale += 0.1;
-        this.setScale();
-        //particlesModule.setSpinnerSpeed(1, 3);
-    }
-    zoomOut () {
-        this.currScale -= 0.1;
-        this.setScale();
-    }
-*/
     animateZoomTo (amount) {
         console.log("sda");
         this.currScale += amount;
@@ -936,6 +958,7 @@ $(document).on("ready", function () {
     historyModule = new History();
     particlesModule = new Particles();
     imageModule = new ImageDisplay();
+    canvasSketchModule = new CanvasSketch();
     overlayModule = new Overlay();
 
     // start with one response
