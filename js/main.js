@@ -249,9 +249,9 @@ const totalWidth = 1000;
 
 /* ========================================================================== */
 /* =========================== OPTIONS ==================================== */
-const USE_OVERLAY = false;          // "eye" circle
+const USE_OVERLAY = true;          // "eye" circle
 const USE_VOICE = false;
-const USE_IMAGES = false;           // call image database
+const USE_IMAGES = true;           // call image database
 const USE_IMAGE_EFFECT = false;     // pixelation effect
 
 /* ========================================================================== */
@@ -854,22 +854,52 @@ class ImageDisplay {
 
 class CanvasSketch {
     constructor () {
-        const width = totalWidth;
-        const height = 400;
-        
+        const width = this.width = totalWidth;
+        const height = this.height = 400;
+        this.image;
+        this.images = [];
+
         this.canvas = d3.select("#canvas-sketch").append("canvas")
             .attr("width", width)
             .attr("height", height);
         this.context = this.canvas.node().getContext("2d");
 
+        this.clearBackground = () => {
+          this.context.fillStyle = "rgba(0,0,0,.2)";
+          this.context.fillRect(0, 0, width, height);
+        }
+
         // draw
         this.step = () => {
-            this.context.fillStyle = "rgba(0,0,0,1)";
-            this.context.fillRect(0, 0, width, height);
+            this.clearBackground();
+            
+            if(this.images.length > 0) {
+                var imgXPos = Math.random()*totalWidth/2;
+                var imgWidth = Math.random()*totalWidth;
 
+                //imgXPos = 0;
+                //imgWidth = 200;
+                this.context.globalAlpha = 0.5;
+                this.context.drawImage(this.images[this.images.length-1], imgXPos, 0, imgWidth, this.height);
+                var imgData = this.context.getImageData(0,0, imgWidth, 400);
+                var data = imgData.data;
+
+                // Rescale the colors.
+                for (var i = 0, n = imgWidth * this.height * 4, d = data; i < n; i += 4) {
+                  d[i + 0] += 0; // r
+                  d[i + 1] += 0; // g
+                  d[i + 2] += 0; // b
+                }
+
+                this.context.putImageData(imgData, imgXPos, 0);
+            }
+
+
+            //for (var i = this.xPos; i < width; i += 10) {
             this.context.fillStyle = "rgba(200,0,0,1)";
-            this.context.fillRect(this.xPos, 10, 10, 10);
+            this.context.fillRect(this.xPos, 10, 10, this.height);
             this.xPos++;
+            //}
         };
 
         // setup
@@ -877,8 +907,24 @@ class CanvasSketch {
 
         // start
         d3.timer(this.step);
+
+
     }
 
+    addImage (url, isRight) {
+
+        
+        this.getImage(url, (image) => {
+            this.images.push(image);
+        });     
+    }
+
+    getImage(path, callback) {
+      var imgObj = new Image;
+      imgObj.onload = function() { callback(imgObj); };
+      imgObj.src = path;
+      imgObj.setAttribute('crossOrigin', '');
+    }
 }
 
 
@@ -901,7 +947,7 @@ class Overlay {
         overlay.width = 3 * vp[0];
         overlay.height = 3 * vp[1];
         $("#overlay").css({"left": -0.33 * overlay.width, "top": -0.33 * overlay.height});
-        this.radius = 500;
+        this.radius = 200;
         this.ctx.fillStyle = '#000';
         
         this.ctx.fillRect(-1*overlay.width, -1*overlay.height, overlay.width*2, overlay.height*2);
@@ -963,6 +1009,8 @@ $(document).on("ready", function () {
 
     // start with one response
     //getResponse();
+
+    
 })
 
 /* ========================================================================== */
@@ -997,7 +1045,7 @@ $(".enter-fullscreen").on("click", function () {
 });
 
 $(document).on("mousemove", function(e) {
-    overlayModule.setOverlayPos(e.clientX, e.clientY);
+    //overlayModule.setOverlayPos(e.clientX, e.clientY);
     //overlayModule.setModulesPos(e.clientX, e.clientY);
 })
 
@@ -1057,6 +1105,7 @@ function getResponse () {
                     let index = Math.floor(Math.random() * max);
                     //console.log(data.hits[index]);
                     imageModule.addImage(data.hits[index].webformatURL, isRight);
+                    canvasSketchModule.addImage(data.hits[index].webformatURL, isRight);
                     /*$.each(data.hits, function(i, hit){
                         console.log(hit.webformatURL); 
                     });*/
