@@ -250,7 +250,7 @@ const totalWidth = 2000;
 /* ========================================================================== */
 /* =========================== OPTIONS ==================================== */
 const USE_OVERLAY = true;          // "eye" circle
-const USE_VOICE = false;
+const USE_VOICE = true;
 const USE_IMAGES = true;           // call image database
 const USE_IMAGE_EFFECT = false;     // pixelation effect
 const USE_EDGES = false;            // lines connecting the spinners
@@ -1123,6 +1123,7 @@ function getResponse () {
         // speak
         if (USE_VOICE) {
             responsiveVoice.speak(data.output);
+            //sayText();
         }
 
         // call image API
@@ -1155,27 +1156,27 @@ function getResponse () {
 /* ============================== HELPER ==================================== */
 
 
-function SayText () {
+function sayText () {
 
     var voice = "BRITISHDANIEL";
     var sentence = "hello there";
     var ttsfile = "http://87.117.198.123:7777/ttsmakeavatartest.php?voice=" + voice;
     //if (voice == 'PEWDIEPIE') ttsfile = "http://78.129.245.15:7777/ttsmakeavatartest.php?voice=" + voice; //use Ayeaye for Pewdiepie 16/12/2016
     ttsfile += "&sx=" + "" +  + "&jsonp=?" + "&sentence=" + "HELLO" /*encodeURIComponent (sentence)*/;
-    //cleverbot.ttsfile = ttsfile; cleverbot.playTTS();
+//    cleverbot.ttsfile = ttsfile; cleverbot.playTTS();
+
+    var el = document.getElementById ('showcommand');
+    var obj = new XMLHttpRequest(); //start a new request
+    obj.onreadystatechange = function() {
+       if (obj.readyState!=4) return;
+       if (obj.status==200) el.innerHTML = obj.responseText;
+    };
+    obj.open ('GET', ttsfile + '&debug=1', true); //run again but with debug=1 to get the command output
+    obj.send(); //send the parameters
     
-    //var el = document.getElementById ('showcommand');
-    //var obj = new XMLHttpRequest(); //start a new request
-    //obj.onreadystatechange = function() {
-    //    if (obj.readyState!=4) return;
-    //    if (obj.status==200) el.innerHTML = obj.responseText;
-    //};
-    //obj.open ('GET', ttsfile + '&debug=1', true); //run again but with debug=1 to get the command output
-    //obj.send(); //send the parameters
-    
-    $.getJSON(ttsfile, function(data){
+/*    $.getJSON(ttsfile, function(data){
         console.log(data);
-    });
+    });*/
 }
 
 function generateNRandomNodes (n) {
