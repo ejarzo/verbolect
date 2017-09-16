@@ -81,3 +81,16 @@ html
 #overlay
     position: fixed
     z-index: 1000
+
+@keyframes dash
+    to
+        stroke-dashoffset: 0
+
+path
+    stroke: #fff
+    fill: none
+    width: 100px
+    stroke-width: 2
+    stroke-dasharray: 30000
+    stroke-dashoffset: 30000
+    animation: dash 500s linear forwards

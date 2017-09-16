@@ -1,4 +1,15 @@
+/* ========================================================================== */
+/* =========================== OPTIONS ==================================== */
+const USE_OVERLAY = false;               // "eye" circle
+const USE_RANDOM_MOVEMENTS = false;     // searching around
+const USE_VOICE = true;                 // audio
+const USE_IMAGES = true;                // call image database
+const USE_IMAGE_EFFECT = false;         // pixelation effect
+const USE_EDGES = false;                // lines connecting the spinners
 
+
+/* ========================================================================== */
+/* ===================== EMOTION MANAGER CLASS ============================== */
 /*
   contains arrays for each major emotion that contain their sub-emotions.
   includes methods for converting emotion to color
@@ -226,6 +237,7 @@ class EmotionManager {
     }
 }
 
+
 /* ========================================================================== */
 /* =========================== Variables ==================================== */
 
@@ -245,16 +257,7 @@ var particlesModule,
 
 var overlayModule;
 
-const totalWidth = 2000;
-
-/* ========================================================================== */
-/* =========================== OPTIONS ==================================== */
-const USE_OVERLAY = true;          // "eye" circle
-const USE_VOICE = true;
-const USE_IMAGES = true;           // call image database
-const USE_IMAGE_EFFECT = false;     // pixelation effect
-const USE_EDGES = false;            // lines connecting the spinners
-
+const totalWidth = $(".modules").width();
 /* ========================================================================== */
 /* =========================== GRADIENT CLASS =============================== */
 
@@ -937,7 +940,10 @@ class CanvasSketch {
 
 /* ========================================================================== */
 /* ============================ OVERLAY CLASS =============================== */
-
+/*
+    responsible for the "roving eye" effect
+    overlay is a black rectangle with a circle cut out 
+*/
 class Overlay {
     constructor () {
         this.ctx = overlay.getContext('2d');
@@ -948,6 +954,7 @@ class Overlay {
         this.currScale = 1;
     }
 
+    /* initialize the overlay */
     renderOverlay() {
         const vp = getViewport();
         overlay.width = 3 * vp[0];
@@ -960,6 +967,7 @@ class Overlay {
         this.clipArc(this.ctx, overlay.width/2, overlay.height/2, this.radius, 10);
     }
 
+    /* Draw cutout circle */
     clipArc(ctx, x, y, r, f) {
         ctx.globalCompositeOperation = 'destination-out';
 
@@ -973,20 +981,22 @@ class Overlay {
         ctx.filter = "none";
     }
 
+    /* animate the overlay center to x, y coordinates */
     setOverlayPos(x, y) {
-        //$("#overlay").animate({"left": x}, 1500);
         var xBuffer = -0.5*overlay.width;
         var yBuffer = -0.5*overlay.height;
         const animateTime = 300;
         $("#overlay").animate({"left": x + xBuffer, "top" : y + yBuffer}, animateTime);
     }
     
+    /* animate the whole canvas under the eye to x, y coordinates */
     setModulesPos(x, y) {
         var xBuffer = totalWidth / -2;
         var yBuffer = $(".modules").height()/-2;
         $(".modules").css({"left": x + xBuffer, "top" : y + yBuffer});
     }
 
+    /* animate the scale (zoom) of the canvas beneath the eye */
     animateZoomTo (amount) {
         console.log("sda");
         this.currScale += amount;
@@ -998,7 +1008,7 @@ class Overlay {
 /* ========================================================================== */
 /* ========================== DOCUMENT READY ================================ */
 
-/* execute on page load*/
+/* execute on page load */
 $(document).on("ready", function () {  
 
     // add svg canvas to all modules
@@ -1014,26 +1024,35 @@ $(document).on("ready", function () {
     canvasSketchModule = new CanvasSketch();
     overlayModule = new Overlay();
 
-
-    // random eye movements
-    (function loop() {
-        var rand = Math.round(Math.random() * (3000 - 500)) + 500;
-        setTimeout(function() {
-                moveEyeToRandomLocation();
-                loop();  
-        }, rand);
-    }());
-
+    // addSvg("emotions");
+    // addSvg("ass_slapper");
+    // addSvg("body1");
+    // addSvg("butterflies");
+    // addSvg("weather2");
+    
     // start with one response
     getResponse();
 
-    (function loop() {
-        var rand = Math.round(Math.random() * (3000 - 500)) + 500;
-        setTimeout(function() {
+
+    // random eye movements
+    if (USE_RANDOM_MOVEMENTS) {
+        (function loop() {
+            var rand = Math.round(Math.random() * (3000 - 500)) + 500;
+            setTimeout(function() {
+                moveEyeToRandomLocation();
+                loop();  
+            }, rand);
+        }());
+
+        (function loop() {
+            var rand = Math.round(Math.random() * (3000 - 500)) + 500;
+            setTimeout(function() {
                 moveModuleToRandomLocation();
                 loop();  
-        }, rand);
-    }());
+            }, rand);
+        }());
+      
+    }
 })
 
 function moveEyeToRandomLocation () {
@@ -1339,4 +1358,15 @@ function getViewport() {
         viewPortHeight = document.getElementsByTagName('body')[0].clientHeight
     }
     return [viewPortWidth, viewPortHeight];
+}
+
+function addSvg (name) {
+    xhr = new XMLHttpRequest();
+    xhr.open("GET","../img/"+name+".svg",false);
+    // Following line is just to be on the safe side;
+    // not needed if your server delivers SVG with correct MIME type
+    //xhr.overrideMimeType("image/svg+xml");
+    xhr.send("");
+    document.getElementById("svgContainer")
+      .appendChild(xhr.responseXML.documentElement);
 }
