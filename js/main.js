@@ -250,7 +250,7 @@ const totalWidth = 2000;
 /* ========================================================================== */
 /* =========================== OPTIONS ==================================== */
 const USE_OVERLAY = true;          // "eye" circle
-const USE_VOICE = false;
+const USE_VOICE = true;
 const USE_IMAGES = true;           // call image database
 const USE_IMAGE_EFFECT = false;     // pixelation effect
 const USE_EDGES = false;            // lines connecting the spinners
@@ -1023,15 +1023,45 @@ $(document).on("ready", function () {
                 loop();  
         }, rand);
     }());
+
     // start with one response
     getResponse();
+
+    (function loop() {
+        var rand = Math.round(Math.random() * (3000 - 500)) + 500;
+        setTimeout(function() {
+                moveModuleToRandomLocation();
+                loop();  
+        }, rand);
+    }());
 })
 
 function moveEyeToRandomLocation () {
     var vp = getViewport();
-    const x = Math.random() * vp[0];
-    const y = Math.random() * vp[1];
+    var width = vp[0];
+    var height = vp[1];
+    var x = Math.random() * vp[0];
+    var y = Math.random() * vp[1];
+/*    if (x > width-width/4 || x < width/4) {
+        x = (x * Math.random() * .8) + (width / 2);
+    }
+
+    if (y > height-height/4 || x < height/4) {
+        y = (y * Math.random() * .8) + (height / 2);
+    }*/
+
     overlayModule.setOverlayPos(x, y)
+}
+
+function moveModuleToRandomLocation() {
+    var vp = getViewport();
+    var width = vp[0];
+    var height = $(".modules").height();
+    height = height * 2 - height/2;
+    var x = Math.random() * width;
+    var y = Math.random() * height;
+
+    overlayModule.setModulesPos(x, y)
 }
 
 
