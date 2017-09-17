@@ -859,6 +859,8 @@ class ImageDisplay {
     }
 }
 
+/* ========================================================================== */
+/* ========================= SECOND IMAGE CLASS============================== */
 
 class CanvasSketch {
     constructor () {
@@ -886,14 +888,14 @@ class CanvasSketch {
                 var imgXPos = Math.random()*totalWidth/2 + 1;
                 var imgWidth = Math.random()*totalWidth + 1;
 
-                //imgXPos = 0;
-                //imgWidth = 200;
                 this.context.globalAlpha = 0.5;
                 this.context.drawImage(this.images[this.images.length-1], imgXPos, 0, imgWidth, this.height);
+
                 var imgData = this.context.getImageData(0,0, imgWidth, 400);
                 var data = imgData.data;
 
                 // Rescale the colors.
+                // TODO
                 for (var i = 0, n = imgWidth * this.height * 4, d = data; i < n; i += 4) {
                   d[i + 0] += 0; // r
                   d[i + 1] += 0; // g
@@ -903,26 +905,25 @@ class CanvasSketch {
                 this.context.putImageData(imgData, imgXPos, 0);
             }
 
-
-            //for (var i = this.xPos; i < width; i += 10) {
+            // TODO
             this.context.fillStyle = "rgba(200,0,0,1)";
             this.context.fillRect(this.xPos, 10, 10, this.height);
-            this.xPos++;
-            //}
+            this.xPos+= 80;
+
+            // reset position when reaches end
+            if (this.xPos > width) {
+                this.xPos = 0;
+            }
         };
 
         // setup
-        this.xPos = 10;
+        this.xPos = 0;
 
         // start
         d3.timer(this.step);
-
-
     }
 
     addImage (url, isRight) {
-
-        
         this.getImage(url, (image) => {
             this.images.push(image);
         });     
@@ -935,8 +936,6 @@ class CanvasSketch {
       imgObj.setAttribute('crossOrigin', '');
     }
 }
-
-
 
 /* ========================================================================== */
 /* ============================ OVERLAY CLASS =============================== */
@@ -1027,8 +1026,8 @@ $(document).on("ready", function () {
     // addSvg("emotions");
     // addSvg("ass_slapper");
     // addSvg("body1");
-    // addSvg("butterflies");
-    // addSvg("weather2");
+    addSvg("butterflies");
+    addSvg("emotions");
     
     // start with one response
     getResponse();
@@ -1061,13 +1060,13 @@ function moveEyeToRandomLocation () {
     var height = vp[1];
     var x = Math.random() * vp[0];
     var y = Math.random() * vp[1];
-/*    if (x > width-width/4 || x < width/4) {
-        x = (x * Math.random() * .8) + (width / 2);
-    }
+    // if (x > width-width/4 || x < width/4) {
+    //     x = (x * Math.random() * .8) + (width / 2);
+    // }
 
-    if (y > height-height/4 || x < height/4) {
-        y = (y * Math.random() * .8) + (height / 2);
-    }*/
+    // if (y > height-height/4 || x < height/4) {
+    //     y = (y * Math.random() * .8) + (height / 2);
+    // }
 
     overlayModule.setOverlayPos(x, y)
 }
@@ -1206,13 +1205,12 @@ function getResponse () {
 
 
 function sayText () {
-
     var voice = "BRITISHDANIEL";
     var sentence = "hello there";
     var ttsfile = "http://87.117.198.123:7777/ttsmakeavatartest.php?voice=" + voice;
     //if (voice == 'PEWDIEPIE') ttsfile = "http://78.129.245.15:7777/ttsmakeavatartest.php?voice=" + voice; //use Ayeaye for Pewdiepie 16/12/2016
     ttsfile += "&sx=" + "" +  + "&jsonp=?" + "&sentence=" + "HELLO" /*encodeURIComponent (sentence)*/;
-//    cleverbot.ttsfile = ttsfile; cleverbot.playTTS();
+    // cleverbot.ttsfile = ttsfile; cleverbot.playTTS();
 
     var el = document.getElementById ('showcommand');
     var obj = new XMLHttpRequest(); //start a new request
@@ -1223,9 +1221,9 @@ function sayText () {
     obj.open ('GET', ttsfile + '&debug=1', true); //run again but with debug=1 to get the command output
     obj.send(); //send the parameters
     
-/*    $.getJSON(ttsfile, function(data){
-        console.log(data);
-    });*/
+    // $.getJSON(ttsfile, function(data){
+    //     console.log(data);
+    // });
 }
 
 function generateNRandomNodes (n) {
@@ -1235,9 +1233,8 @@ function generateNRandomNodes (n) {
         //particlesModule.addNode("#00f", 0, 0);
     }
 }
-/*
-  hex to rgb and vice versa
-*/
+
+/* hex to rgb and vice versa */
 function componentToHex(c) {
     var hex = c.toString(16);
     return hex.length == 1 ? "0" + hex : hex;
@@ -1272,9 +1269,7 @@ function setIntervalX(callback, delay, repetitions) {
     }, delay);
 }
 
-/*
-    returns the center point of a circle, used for circles that are transformed
-*/
+/* returns the center point of a circle, used for circles that are transformed */
 function getCircleCenter (circle) {
     var ctm = circle.node().getCTM();
     var cx = circle.attr('cx');
@@ -1305,9 +1300,7 @@ $('.start').click(function(e) {
   typeWriter(text, 0);
 });
 
-/*
-    toggles browser fullscreen mode
-*/
+/* toggles browser fullscreen mode */
 function toggleFullScreen () {
   if (!document.fullscreenElement &&    // alternative standard method
       !document.mozFullScreenElement && !document.webkitFullscreenElement && !document.msFullscreenElement ) {  // current working methods
