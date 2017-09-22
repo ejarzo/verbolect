@@ -4,6 +4,7 @@
 $module-height: 800px
 $gradient-margin-bottom: -800px
 $total-width: 2000px
+$total-height: 800px
 
 html
     color: #222
@@ -54,48 +55,74 @@ html
             width: $total-width
 
     #emotion-gradient-bottom
-        background: #ddd
         margin-bottom: $gradient-margin-bottom
     
     #particles
-        height: 400px
+        height: $total-height
         background: #000
 
     #image-module
-        height: 400px
+        height: $total-height
 
     #canvas-sketch
         background: #ddd
-        height: 400px
+        height: $total-height
+   
+    
     .text-output
         //position: absolute
         color: #FFF
         padding: 10px
         min-height: 60px
-        font-size: 30px
+        font-size: 180px
+        padding: 50px
+        padding-bottom: 100px
+        min-eight: 200px
         .text-output-r
             text-align: right
         .text-output-l
             float: left
+
+#shape-drawing
+    background: #000
+    height: $total-height
+
+#constellation
+    background: #000
+    height: $total-height
 
 #overlay
     position: fixed
     z-index: 1000
 
 @keyframes dash
-    to
-        stroke-dashoffset: 0
+    //0%
+    //    stroke-dashoffset: 30000
+    50% 
+        stroke-dashoffset: 0      
 
 path
     stroke: #fff
     fill: none
-    stroke-width: 2
-    stroke-dasharray: 30000
-    stroke-dashoffset: 30000
-    animation: dash 500s linear forwards
+    stroke-width: 3
+    stroke-dasharray: 10000
+    stroke-dashoffset: 10000
+    animation: dash 30s ease-in-out
 
 #svgContainer
-    height: 1400px
+    height: 100vh
+    width: 100vw
+    left: 0
+    top: 0
+    z-index: 100
+    position: fixed
+    transform: scale(2)
     svg
         height: 100%
         width: 100%
+
+.clearfix
+    &::after
+        display: block
+        content: ""
+        clear: both

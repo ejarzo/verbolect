@@ -2,11 +2,14 @@
 /* =========================== OPTIONS ==================================== */
 const USE_OVERLAY = false;               // "eye" circle
 const USE_RANDOM_MOVEMENTS = false;     // searching around
-const USE_VOICE = true;                 // audio
-const USE_IMAGES = true;                // call image database
+const USE_VOICE = false;                 // audio
+const USE_IMAGES = false;                // call image database
 const USE_IMAGE_EFFECT = false;         // pixelation effect
 const USE_EDGES = false;                // lines connecting the spinners
-
+const USE_LINE_DRAWING = false;
+const EYE_RADIUS = 320;
+const totalWidth = $(".modules").width();
+const totalHeight = 800;
 
 /* ========================================================================== */
 /* ===================== EMOTION MANAGER CLASS ============================== */
@@ -242,7 +245,7 @@ class EmotionManager {
 /* =========================== Variables ==================================== */
 
 // init state
-var prevOutput = "Hello";
+var prevOutput = "Food";
 var prevCs = "";
 
 // emotion manager
@@ -253,11 +256,13 @@ var particlesModule,
     historyModule,
     gradientModule,
     imageModule,
+    constellationModule,
+    shapeDrawingModule,
     canvasSketchModule;
 
 var overlayModule;
 
-const totalWidth = $(".modules").width();
+
 /* ========================================================================== */
 /* =========================== GRADIENT CLASS =============================== */
 
@@ -485,7 +490,7 @@ class Particles {
                         const y = height/-2 + combinedRadius;
                         this.addNode(rect.attr("fill"), x, y)
                     }
-                }, 100, 5);
+                }, 100, 2);
             }
         }
 
@@ -645,8 +650,8 @@ class Particles {
         // setup
         var svg = d3.select("#particles svg"),
             bbox = svg.node().getBoundingClientRect(),
-            width = $(".modules").width(),
-            height = 400,
+            width = totalWidth,
+            height = totalHeight,
             midX = width / 2,
             midY = height / 2,
             nodeRadius = 8,
@@ -675,7 +680,7 @@ class Particles {
         // simulation vars
         var aDecay = 0.1,
             vDecay = 0.05,
-            chargeStrength = 0,
+            chargeStrength = 6,
             gravityStrength = 0.03,
             collideStrength = 1.3,
             collideIterations = 3;
@@ -768,15 +773,12 @@ class ImageDisplay {
             } else {
                 c = this.getColorAtPoint(p[0], p[1], this.imageRight);
             }
-            ctx.fillStyle = c;
-            ctx.fillRect(p[0],p[1],10,10);
+            this.context.fillStyle = c;
+            this.context.fillRect(p[0],p[1],10,10);
         };
 
+        // pixel moving effect
         this.step = () => {
-            //ctx.fillStyle = "rgba(255,255,255,0.3)";
-            //ctx.fillStyle = "rgba(0,0,0,0.02)";
-            //ctx.fillRect(0,0,width,height);
-            //ctx.fillStyle = "rgba(0,0,0,0.1)";
             particles.forEach((p) => {
                 p[0] += Math.round(2*Math.random()-1);
                 p[1] += Math.round(2*Math.random()-1);
@@ -788,25 +790,25 @@ class ImageDisplay {
             });
         };
 
-        var bbox = d3.select("#image-module").node().getBoundingClientRect();
-        this.width = totalWidth;
-        this.height = 400;
+        var width = this.height = totalWidth;
+        var height = this.height = totalHeight;
+        
         this.canvas = d3.select("#image-module").append("canvas")
             .attr("width", totalWidth)
-            .attr("height", 400);
+            .attr("height", totalHeight);
 
         this.context = this.canvas.node().getContext("2d");
         this.imageLeft;
         this.imageRight;
 
-        var num = 500;
         //var canvas = document.getElementById("canvas");
-        var width = totalWidth;
-        var height = 400;
+        //var width = totalWidth;
+        //var height = 400;
         //var ctx = this.canvas.getContext("2d");
-        var ctx = this.context;
+        //var ctx = this.context;
 
-        var particles = d3.range(num).map(function(i) {
+        var numParticles = 500;
+        var particles = d3.range(numParticles).map(function(i) {
           return [Math.round(width*Math.random()), Math.round(height*Math.random())];
         }); 
         if (USE_IMAGE_EFFECT) {
@@ -866,7 +868,7 @@ class CanvasSketch {
     constructor () {
 
         const width = this.width = totalWidth;
-        const height = this.height = 400;
+        const height = this.height = totalHeight;
         this.image;
         this.images = [];
 
@@ -891,7 +893,7 @@ class CanvasSketch {
                 this.context.globalAlpha = 0.5;
                 this.context.drawImage(this.images[this.images.length-1], imgXPos, 0, imgWidth, this.height);
 
-                var imgData = this.context.getImageData(0,0, imgWidth, 400);
+                var imgData = this.context.getImageData(0,0, imgWidth, height);
                 var data = imgData.data;
 
                 // Rescale the colors.
@@ -908,7 +910,7 @@ class CanvasSketch {
             // TODO
             this.context.fillStyle = "rgba(200,0,0,1)";
             this.context.fillRect(this.xPos, 10, 10, this.height);
-            this.xPos+= 80;
+            this.xPos+= 10;
 
             // reset position when reaches end
             if (this.xPos > width) {
@@ -938,6 +940,156 @@ class CanvasSketch {
 }
 
 /* ========================================================================== */
+/* ========================= SECOND IMAGE CLASS============================== */
+
+class Constellation {
+    constructor () {
+
+        const width = this.width = totalWidth;
+        const height = this.height = totalHeight;
+
+        this.canvas = d3.select("#constellation").append("canvas")
+            .attr("width", width)
+            .attr("height", height);
+        this.context = this.canvas.node().getContext("2d");
+
+        this.clearBackground = () => {
+            this.context.fillStyle = "rgba(0,0,0,.001)";
+            this.context.fillRect(0, 0, width, height);
+        }
+
+        // draw
+        this.step = () => {
+            this.clearBackground();
+            var yDiff = this.targetY - this.currY;
+            var xDiff = this.targetX - this.currX;
+            var slope = yDiff / xDiff;
+
+            this.currX += xDiff / 100;
+            this.currY += yDiff / 100;
+
+            this.context.fillStyle = "#FFF";
+            this.context.fillRect(this.currX, this.currY, 3, 3);
+        };
+
+        this.context.beginPath();
+        this.isFirstPoint = true;
+        // setup
+        this.currX = 0;
+        this.currY = 0;
+
+        this.targetX = 0;
+        this.targetY = 0;
+        // start
+        //d3.timer(this.step);
+    }
+
+    addPoint (ed, rd, color) {
+        /*this.context.fillStyle = "rgba(0, 0, 0, 0.6)";
+        this.context.fillRect(0, 0, this.width, this.height);*/
+        const x = convertRange( ed, [ 0, 100 ], [ 0, this.width ] );
+        const y = convertRange( rd, [ 0, 100 ], [ 0, this.height ] );
+        
+        this.targetX = x;
+        this.targetY = y;
+        /*if (this.isFirstPoint) {
+            this.context.moveTo(x, y)
+            this.isFirstPoint = false;
+        } else {
+            this.context.lineTo(x, y)
+        }
+        */
+        this.context.strokeStyle = "rgba(255, 255, 255, 1)";
+        this.context.stroke()
+
+        this.context.fillStyle = color;
+        this.context.fillRect(x-1, y-1, 3, 3);
+    }
+}
+
+/* ========================================================================== */
+/* ========================= SECOND IMAGE CLASS============================== */
+
+class ShapeDrawing {
+    constructor () {
+
+        const width = this.width = totalWidth;
+        const height = this.height = totalHeight;
+
+        this.canvas = d3.select("#constellation").append("canvas")
+            .attr("width", width)
+            .attr("height", height);
+        this.context = this.canvas.node().getContext("2d");
+
+        this.clearBackground = () => {
+            this.context.fillStyle = "rgba(0,0,0,.005)";
+            this.context.fillRect(0, 0, width, height);
+        }
+
+        // draw
+        this.step = () => {
+            this.clearBackground();
+            var yDiff = this.targetY - this.currY;
+            var xDiff = this.targetX - this.currX;
+            var slope = yDiff / xDiff;
+            this.percentage += 0.02;
+
+            var rgb1 = hexToRgb(this.color);
+            var rgb2 = hexToRgb(this.targetColor);
+
+            var col = blendColors(rgb1.r, rgb1.g, rgb1.b, rgb2.r, rgb2.g, rgb2.b, this.percentage)
+            console.log(col)
+            col = rgbToHex(col);
+            this.currX += xDiff / 100;
+            this.currY += yDiff / 100;
+
+            this.context.fillStyle = col;
+            this.context.fillRect(this.currX, this.currY, 3, 3);
+        };
+
+        this.context.beginPath();
+        this.isFirstPoint = true;
+        // setup
+        this.currX = 0;
+        this.currY = 0;
+
+        this.targetX = 0;
+        this.targetY = 0;
+
+        this.color = "#000000";
+        this.targetColor = "#000000"
+        // start
+        d3.timer(this.step);
+    }
+
+    addPoint (ed, rd, color) {
+        this.percentage = 0;
+        /*this.context.fillStyle = "rgba(0, 0, 0, 0.6)";
+        this.context.fillRect(0, 0, this.width, this.height);*/
+        const x = convertRange( ed, [ 0, 100 ], [ 0, this.width ] );
+        const y = convertRange( rd, [ 0, 100 ], [ 0, this.height ] );
+        
+        this.targetX = x;
+        this.targetY = y;
+
+        this.color = this.targetColor;
+        this.targetColor = color;
+        
+        /*if (this.isFirstPoint) {
+            this.context.moveTo(x, y)
+            this.isFirstPoint = false;
+        } else {
+            this.context.lineTo(x, y)
+        }*/
+        /*
+        this.context.strokeStyle = "rgba(255, 255, 255, 1)";
+        this.context.stroke()
+
+        this.context.fillStyle = color;
+        this.context.fillRect(x-1, y-1, 3, 3);*/
+    }
+}
+/* ========================================================================== */
 /* ============================ OVERLAY CLASS =============================== */
 /*
     responsible for the "roving eye" effect
@@ -959,7 +1111,7 @@ class Overlay {
         overlay.width = 3 * vp[0];
         overlay.height = 3 * vp[1];
         $("#overlay").css({"left": -0.33 * overlay.width, "top": -0.33 * overlay.height});
-        this.radius = 200;
+        this.radius = EYE_RADIUS;
         this.ctx.fillStyle = '#000';
         
         this.ctx.fillRect(-1*overlay.width, -1*overlay.height, overlay.width*2, overlay.height*2);
@@ -1021,14 +1173,10 @@ $(document).on("ready", function () {
     particlesModule = new Particles();
     imageModule = new ImageDisplay();
     canvasSketchModule = new CanvasSketch();
+    constellationModule = new Constellation();
+    shapeDrawingModule = new ShapeDrawing();
     overlayModule = new Overlay();
 
-    // addSvg("emotions");
-    // addSvg("ass_slapper");
-    // addSvg("body1");
-    addSvg("butterflies");
-    addSvg("emotions");
-    
     // start with one response
     getResponse();
 
@@ -1059,6 +1207,11 @@ function moveEyeToRandomLocation () {
     var width = vp[0];
     var height = vp[1];
     var x = Math.random() * vp[0];
+    x = (x < EYE_RADIUS) ? EYE_RADIUS : x;
+    x = (x > width - EYE_RADIUS) ? width - EYE_RADIUS : x;
+    y = (y < EYE_RADIUS) ? EYE_RADIUS : y;
+    y = (y > height - EYE_RADIUS) ? height - EYE_RADIUS : y;
+
     var y = Math.random() * vp[1];
     // if (x > width-width/4 || x < width/4) {
     //     x = (x * Math.random() * .8) + (width / 2);
@@ -1094,6 +1247,7 @@ $(window).keypress(function(e) {
     }
     if (e.which === 122) { // z
         overlayModule.animateZoomTo(-0.3)
+        $("path").css("animation-direction", "reverse");
         //overlayModule.zoomIn();
     }
     if (e.which === 120) { // x
@@ -1128,7 +1282,10 @@ $(document).on("mousemove", function(e) {
 function getResponse () {
 
     $(".loading-spinner").show();
-    
+    if (USE_LINE_DRAWING) {
+        addSvg(parseInt(Math.random()*11) + 1);
+    }
+
     var stringWithoutSpaces = encodeURIComponent(prevOutput)
     //.replace(/\s/g, '+');
     var url = "http://www.cleverbot.com/getreply?key=" + APIKEY + "&input=" + 
@@ -1164,13 +1321,17 @@ function getResponse () {
 
         // get color
         var newCol = rgbToHex(EM.getColorForEmotion(data.emotion));
+        constellationModule.addPoint(data.emotion_degree, data.reaction_degree, newCol)
+        shapeDrawingModule.addPoint(data.emotion_degree, data.reaction_degree, newCol)
+
+
         if (data.interaction_count > 0) {
             gradientModule.addColor(newCol);
         }
 
         // speak
         if (USE_VOICE) {
-            responsiveVoice.speak(data.output);
+            responsiveVoice.speak(data.output, "UK English Male");
             //sayText();
         }
 
@@ -1355,11 +1516,22 @@ function getViewport() {
 
 function addSvg (name) {
     xhr = new XMLHttpRequest();
-    xhr.open("GET","../img/"+name+".svg",false);
-    // Following line is just to be on the safe side;
-    // not needed if your server delivers SVG with correct MIME type
-    //xhr.overrideMimeType("image/svg+xml");
+    xhr.open("GET","../img/svgs/"+name+".svg",false);
     xhr.send("");
-    document.getElementById("svgContainer")
-      .appendChild(xhr.responseXML.documentElement);
+    $("#svgContainer").html(xhr.responseXML.documentElement)
 }
+
+function convertRange( value, r1, r2 ) { 
+    return ( value - r1[ 0 ] ) * ( r2[ 1 ] - r2[ 0 ] ) / ( r1[ 1 ] - r1[ 0 ] ) + r2[ 0 ];
+}
+
+
+function blendColors(r1,g1,b1,r2,g2,b2,balance) {
+    var bal = Math.min(Math.max(balance,0),1);
+    var nbal = 1-bal;
+    return {
+            r : Math.floor(r1*nbal + r2*bal),
+            g : Math.floor(g1*nbal + g2*bal),
+            b : Math.floor(b1*nbal + b2*bal)
+           };
+} 
