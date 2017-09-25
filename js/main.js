@@ -2,7 +2,7 @@
 /* =========================== OPTIONS ==================================== */
 const USE_OVERLAY = false;               // "eye" circle
 const USE_RANDOM_MOVEMENTS = false;     // searching around
-const USE_VOICE = false;                 // audio
+const USE_VOICE = true;                 // audio
 const USE_IMAGES = false;                // call image database
 const USE_IMAGE_EFFECT = false;         // pixelation effect
 const USE_EDGES = false;                // lines connecting the spinners
@@ -245,7 +245,7 @@ class EmotionManager {
 /* =========================== Variables ==================================== */
 
 // init state
-var prevOutput = "Food";
+var prevOutput = "What's good";
 var prevCs = "";
 
 // emotion manager
@@ -482,11 +482,11 @@ class Particles {
                 const rect = rectList[i],
                       bbox = rect.node().getBoundingClientRect(),
                       combinedRadius = nodeRadius + nodeBuffer,
-                      numNodesPerColor = Math.floor(totalWidth / (2 * combinedRadius));
+                      numNodesPerColor = Math.floor(bbox.width / (2 * combinedRadius));
 
                 setIntervalX( () => {
                     for (let i = 0; i < numNodesPerColor; i++) {
-                        const x = 0 + i * 2 * (combinedRadius);
+                        const x = bbox.left + i * 2 * (combinedRadius);
                         const y = height/-2 + combinedRadius;
                         this.addNode(rect.attr("fill"), x, y)
                     }
@@ -680,7 +680,7 @@ class Particles {
         // simulation vars
         var aDecay = 0.1,
             vDecay = 0.05,
-            chargeStrength = 6,
+            chargeStrength = 2,
             gravityStrength = 0.03,
             collideStrength = 1.3,
             collideIterations = 3;
@@ -1012,11 +1012,12 @@ class Constellation {
 
 class ShapeDrawing {
     constructor () {
-
+        this.count = 0;
         const width = this.width = totalWidth;
         const height = this.height = totalHeight;
+        this.isRight = () => this.count % 2;
 
-        this.canvas = d3.select("#constellation").append("canvas")
+        this.canvas = d3.select("#shape-drawing").append("canvas")
             .attr("width", width)
             .attr("height", height);
         this.context = this.canvas.node().getContext("2d");
@@ -1028,65 +1029,105 @@ class ShapeDrawing {
 
         // draw
         this.step = () => {
-            this.clearBackground();
-            var yDiff = this.targetY - this.currY;
-            var xDiff = this.targetX - this.currX;
-            var slope = yDiff / xDiff;
-            this.percentage += 0.02;
-
-            var rgb1 = hexToRgb(this.color);
-            var rgb2 = hexToRgb(this.targetColor);
-
-            var col = blendColors(rgb1.r, rgb1.g, rgb1.b, rgb2.r, rgb2.g, rgb2.b, this.percentage)
-            console.log(col)
-            col = rgbToHex(col);
-            this.currX += xDiff / 100;
-            this.currY += yDiff / 100;
-
-            this.context.fillStyle = col;
-            this.context.fillRect(this.currX, this.currY, 3, 3);
+            if (this.isRight()) {
+                this.drawRight();
+            }
+            else {
+                this.drawLeft();
+            }
         };
 
         this.context.beginPath();
         this.isFirstPoint = true;
+        
         // setup
-        this.currX = 0;
-        this.currY = 0;
+        this.currXL = 0;
+        this.currYL = 0;
+        this.currXR = totalWidth;
+        this.currYR = 0;
 
         this.targetX = 0;
         this.targetY = 0;
 
-        this.color = "#000000";
-        this.targetColor = "#000000"
+        this.prevColorLeft = "#000000";
+        this.prevColorRight = "#000000";
+        
+        this.targetColorL = "#000000";
+        this.targetColorR = "#000000";
+
         // start
         d3.timer(this.step);
     }
 
-    addPoint (ed, rd, color) {
+    addPoint (ed, rd, color, text) {
         this.percentage = 0;
-        /*this.context.fillStyle = "rgba(0, 0, 0, 0.6)";
-        this.context.fillRect(0, 0, this.width, this.height);*/
-        const x = convertRange( ed, [ 0, 100 ], [ 0, this.width ] );
-        const y = convertRange( rd, [ 0, 100 ], [ 0, this.height ] );
-        
+        const x = convertRange(ed, [0, 100], [0, this.width]);
+        const y = convertRange(rd, [0, 100], [0, this.height]);
+        if (this.count == 1) {
+            this.currXL = x;
+            this.currYL = y;
+        } else if (this.count == 2) {
+            this.currXR = totalWidth - x;
+            this.currYR = y;
+        }
         this.targetX = x;
         this.targetY = y;
 
-        this.color = this.targetColor;
-        this.targetColor = color;
-        
-        /*if (this.isFirstPoint) {
-            this.context.moveTo(x, y)
-            this.isFirstPoint = false;
+        if (this.isRight()) {
+            this.context.strokeText(text,x,y);
+            this.prevColorLeft = this.targetColorL;
+            this.targetColorL = color;
         } else {
-            this.context.lineTo(x, y)
-        }*/
-        /*
-        this.context.strokeStyle = "rgba(255, 255, 255, 1)";
-        this.context.stroke()
+            this.context.strokeText(text,totalWidth-x,y);
+            this.prevColorRight = this.targetColorR;
+            this.targetColorR = color;
+        }
+        
+        this.count++;
+    }
 
-        this.context.fillStyle = color;
-        this.context.fillRect(x-1, y-1, 3, 3);*/
+    drawLeft () {
+        //this.clearBackground();
+        var yDiff = this.targetY - this.currYL;
+        var xDiff = this.targetX - this.currXL;
+        var slope = yDiff / xDiff;
+        this.percentage += 0.02;
+
+        var rgb1 = hexToRgb(this.prevColorLeft);
+        var rgb2 = hexToRgb(this.targetColorL);
+
+        var col = blendColors(rgb1.r, rgb1.g, rgb1.b, rgb2.r, rgb2.g, rgb2.b, this.percentage)
+        //console.log(col)
+        col = rgbToHex(col);
+        this.currXL += xDiff / 100;
+        this.currYL += yDiff / 100;
+        if (this.count > 2) {
+            this.context.fillStyle = col;
+            this.context.fillRect(this.currXL, this.currYL, 3, 3);
+        }
+    }
+
+    drawRight () {
+        var targetX = totalWidth - this.targetX;
+        //var targetY = totalHeight - this.targetY;
+
+        var yDiff = this.targetY - this.currYR;
+        var xDiff = targetX - this.currXR;
+        var slope = yDiff / xDiff;
+        this.percentage += 0.02;
+
+        var rgb1 = hexToRgb(this.prevColorRight);
+        var rgb2 = hexToRgb(this.targetColorR);
+
+        var col = blendColors(rgb1.r, rgb1.g, rgb1.b, rgb2.r, rgb2.g, rgb2.b, this.percentage)
+        //console.log(col)
+        col = rgbToHex(col);
+        this.currXR += xDiff / 100;
+        this.currYR += yDiff / 100;
+        if (this.count > 3) {
+            this.context.fillStyle = col;
+            this.context.fillRect(this.currXR, this.currYR, 3, 3);
+        }
     }
 }
 /* ========================================================================== */
@@ -1322,7 +1363,7 @@ function getResponse () {
         // get color
         var newCol = rgbToHex(EM.getColorForEmotion(data.emotion));
         constellationModule.addPoint(data.emotion_degree, data.reaction_degree, newCol)
-        shapeDrawingModule.addPoint(data.emotion_degree, data.reaction_degree, newCol)
+        shapeDrawingModule.addPoint(data.emotion_degree, data.reaction_degree, newCol, data.output)
 
 
         if (data.interaction_count > 0) {
@@ -1331,7 +1372,7 @@ function getResponse () {
 
         // speak
         if (USE_VOICE) {
-            responsiveVoice.speak(data.output, "UK English Male");
+            responsiveVoice.speak(data.output, "UK English Male", {rate: Math.random()*2, pitch: Math.random()*1.9+0.1, volume: 1});
             //sayText();
         }
 

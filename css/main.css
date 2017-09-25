@@ -67,7 +67,11 @@ html {
       float: left; }
 
 #shape-drawing {
-  background: #000;
+  position: absolute;
+  left: 0;
+  top: 800px;
+  z-index: 1000;
+  width: 2000px;
   height: 800px; }
 
 #constellation {
