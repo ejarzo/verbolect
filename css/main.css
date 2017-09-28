@@ -26,85 +26,107 @@ html {
     top: 3px;
     display: none; }
 
-.modules {
-  transition: 0.5s;
-  -webkit-transition: all 0.5s;
-  margin: 0;
-  width: 2000px;
-  height: auto;
-  position: absolute;
-  border: 2px solid #777;
-  -webkit-transform: scale3d(1, 1, 1); }
-  .modules .module {
-    height: 800px;
-    background: #000; }
-  .modules #emotion-gradient {
-    overflow: hidden;
-    position: relative; }
-    .modules #emotion-gradient svg {
-      width: 2000px; }
-  .modules #emotion-gradient-bottom {
-    margin-bottom: -800px; }
-  .modules #particles {
-    height: 800px;
-    background: #000; }
-  .modules #image-module {
-    height: 800px; }
-  .modules #canvas-sketch {
-    background: #ddd;
-    height: 800px; }
-  .modules .text-output {
-    color: #FFF;
-    padding: 10px;
-    min-height: 60px;
-    font-size: 180px;
-    padding: 50px;
-    padding-bottom: 100px;
-    min-eight: 200px; }
-    .modules .text-output .text-output-r {
-      text-align: right; }
-    .modules .text-output .text-output-l {
-      float: left; }
-
-#shape-drawing {
-  position: absolute;
-  left: 0;
-  top: 800px;
-  z-index: 1000;
-  width: 2000px;
-  height: 800px; }
-
-#constellation {
-  background: #000;
-  height: 800px; }
-
+/*  ====================================================  */
 #overlay {
   position: fixed;
   z-index: 1000; }
 
+.module {
+  height: 800px; }
+
+.module-group {
+  display: inline-block;
+  width: 1280px;
+  left: 0;
+  right: 0; }
+
+.static-modules {
+  position: absolute;
+  z-index: 1000; }
+  .static-modules .module {
+    height: 800px;
+    margin: 30px 0; }
+  .static-modules #svg-drawing {
+    position: fixed;
+    height: 100vh;
+    width: 100vw;
+    left: 0;
+    top: 0;
+    z-index: 100;
+    transform: scale(2); }
+    .static-modules #svg-drawing svg {
+      height: 100%;
+      width: 100%; }
 @keyframes dash {
   50% {
     stroke-dashoffset: 0; } }
-path {
-  stroke: #fff;
-  fill: none;
-  stroke-width: 3;
-  stroke-dasharray: 10000;
-  stroke-dashoffset: 10000;
-  animation: dash 30s ease-in-out; }
+    .static-modules #svg-drawing path {
+      stroke: #fff;
+      fill: none;
+      stroke-width: 3;
+      stroke-dasharray: 10000;
+      stroke-dashoffset: 10000;
+      animation: dash 30s ease-in-out; }
 
-#svgContainer {
+.text-output {
+  position: fixed;
+  z-index: 2000;
+  bottom: 0;
+  left: 0;
+  color: #FFF;
+  margin: 0;
   height: 100vh;
   width: 100vw;
-  left: 0;
-  top: 0;
-  z-index: 100;
-  position: fixed;
-  transform: scale(2); }
-  #svgContainer svg {
-    height: 100%;
-    width: 100%; }
+  font-size: 130px; }
+  .text-output .text-cont {
+    display: table-row;
+    vertical-align: bottom;
+    height: 1px; }
+  .text-output .text-output-r {
+    position: absolute;
+    right: 0;
+    bottom: 20px;
+    padding: 20px;
+    float: right;
+    text-align: right;
+    opacity: 0.5; }
+  .text-output .text-output-l {
+    position: absolute;
+    left: 0;
+    bottom: 20px;
+    padding: 20px;
+    opacity: 0.5; }
 
+.dynamic-modules {
+  transition: 0.5s;
+  -webkit-transition: all 0.5s;
+  -webkit-transform: scale3d(1, 1, 1); }
+  .dynamic-modules .module-section {
+    width: 1280px;
+    min-height: 800px;
+    margin: 30px 0; }
+  .dynamic-modules #gradient-and-history {
+    height: calc(2 * $total-height); }
+    .dynamic-modules #gradient-and-history #emotion-gradient {
+      overflow: hidden;
+      position: relative;
+      top: 0; }
+      .dynamic-modules #gradient-and-history #emotion-gradient svg {
+        width: 1280px; }
+    .dynamic-modules #gradient-and-history #emotion-gradient-bottom {
+      margin-bottom: -800px; }
+  .dynamic-modules #particles {
+    height: 800px;
+    background: #000; }
+  .dynamic-modules #video-module {
+    height: 800px; }
+  .dynamic-modules #image-module {
+    height: 800px; }
+  .dynamic-modules #canvas-sketch {
+    background: #ddd;
+    height: 800px; }
+
+/*  ====================================================  */
 .clearfix::after {
   display: block;
   content: "";

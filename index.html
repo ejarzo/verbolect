@@ -4,68 +4,68 @@
         <meta charset="utf-8">
         <meta http-equiv="x-ua-compatible" content="ie=edge">
         <title>Verbolect</title>
-        <meta name="description" content="">
+        <meta name="description" content="Verbolect">
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <link rel="apple-touch-icon" href="apple-touch-icon.png">
         <link rel="stylesheet" href="css/normalize.css">
         <link rel="stylesheet" href="css/main.css">
         <script src="js/vendor/modernizr-2.8.3.min.js"></script>
     </head>
+    
     <body>
-        <!--[if lt IE 8]>
-            <p class="browserupgrade">You are using an <strong>outdated</strong> browser. Please <a href="http://browsehappy.com/">upgrade your browser</a> to improve your experience.</p>
-        <![endif]-->
-
         <div id="controls">
-            <!-- <button class="enter-fullscreen" title="Toggle Fullscreen">Fullscreen</button> -->
-            <!-- <input class="r1" type="range" min="200" max="400">
-            <input class="r2" type="range" min="2" max="300"> -->
             <button onclick="getResponse()">RESPONSE</button>
             <button onclick="dump()">DUMP</button>
             <button onclick="clearParticles()">CLEAR</button>
             <span class="conversation-text"></span>
             <img class="loading-spinner" src="img/ajax-loader.gif">
         </div>
+
         <div id="main">
             <canvas id="overlay"></canvas>
-            <div id="svgContainer"></div>
-            <div id="constellation"></div>
-            <div id="shape-drawing"></div>
-            <div class="modules">
-                <div class="module" id="emotion-gradient-bottom"></div>
-                <div class="module" id="emotion-gradient"></div>
-                
-                <div class="module" id="emotion-history-grid"></div>
-                <div class="module" id="particles"></div>
-                
-                <div id="canvas-sketch"></div>
-                <div id="image-module"></div>
-                <div class="text-output clearfix">
+            
+            <div class="module-section module text-output">
+                <div class="text-cont">
                     <div class="text-output-l"></div>
                     <div class="text-output-r"></div>
                 </div>
-                <!-- <img class="svg-draw" src="img/ass_slapper.svg"> -->
+            </div>
+            
+            <div class="centered">
+                
+                <div class="module-group static-modules">
+                    <div id="svg-drawing"></div>
+                    <div class="module" id="constellation"></div>
+                    <div class="module" id="shape-drawing"></div>
+                </div>
+
+                <div class="module-group dynamic-modules">
+                    <div class="module-section" id="ytplayer"></div>
+                    <div class="module-section module" id="video-module"></div>
+                    <div class="module-section" id="gradient-and-history">
+                        <div class="gradient-group">
+                            <div class="module svg-module" id="emotion-gradient-bottom"></div>
+                            <div class="module svg-module" id="emotion-gradient"></div>
+                        </div>
+                        <div class="module svg-module" id="emotion-history-grid"></div>
+                        <div class="module svg-module" id="particles"></div>
+                    </div>
+                    <div class="module-section module" id="canvas-sketch"></div>
+                    <div class="module-section module" id="image-module"></div>
+                </div>
+
             </div>
         </div>
 
-        
+        <script async src="https://www.youtube.com/iframe_api"></script>
 
-<!--         <script src="https://code.jquery.com/jquery-1.12.0.min.js"></script>
-        <script>window.jQuery || document.write('<script src="js/vendor/jquery-1.12.0.min.js"><\/script>')</script> -->
-        
-        <!-- <script src="https://d3js.org/d3.v4.min.js"></script> -->
         <script src='https://code.responsivevoice.org/responsivevoice.js'></script>
-
         <script src="js/vendor/jquery-1.12.0.min.js"></script>        
         <script src="js/vendor/d3.v4.min.js"></script>
-        <!-- <script src="js/d3-bboxCollide.js"></script> -->
         <script src="js/plugins.js"></script>
         <script src="js/conversation-avatar-eviebot-min.js"></script>
         <script src="js/obscuretts.js"></script>
-        <!-- <script src="js/particles.js"></script> -->
         <script src="js/apikey.js"></script>
-
         <script src="js/main.js"></script>
-
     </body>
 </html>

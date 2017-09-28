@@ -2,14 +2,19 @@
 /* =========================== OPTIONS ==================================== */
 const USE_OVERLAY = false;               // "eye" circle
 const USE_RANDOM_MOVEMENTS = false;     // searching around
-const USE_VOICE = true;                 // audio
-const USE_IMAGES = false;                // call image database
+const USE_VOICE = false;                 // audio
+const USE_IMAGES = false;                // call image API
+const USE_VIDEOS = false;                // call youtube API
+const USE_SOUND_EFFECTS = true;                // call youtube API
 const USE_IMAGE_EFFECT = false;         // pixelation effect
 const USE_EDGES = false;                // lines connecting the spinners
 const USE_LINE_DRAWING = false;
+
 const EYE_RADIUS = 320;
-const totalWidth = $(".modules").width();
+const totalWidth = $(".dynamic-modules").width();
 const totalHeight = 800;
+
+let ytPlayer;
 
 /* ========================================================================== */
 /* ===================== EMOTION MANAGER CLASS ============================== */
@@ -245,7 +250,7 @@ class EmotionManager {
 /* =========================== Variables ==================================== */
 
 // init state
-var prevOutput = "What's good";
+var prevOutput = "Do you like Radiohead?";
 var prevCs = "";
 
 // emotion manager
@@ -483,11 +488,14 @@ class Particles {
                       bbox = rect.node().getBoundingClientRect(),
                       combinedRadius = nodeRadius + nodeBuffer,
                       numNodesPerColor = Math.floor(bbox.width / (2 * combinedRadius));
-
+                console.log(rect)
                 setIntervalX( () => {
                     for (let i = 0; i < numNodesPerColor; i++) {
                         const x = bbox.left + i * 2 * (combinedRadius);
-                        const y = height/-2 + combinedRadius;
+                        //const y = height/-2 + combinedRadius;
+                        const y = 2*combinedRadius;
+
+                        console.log("-----", i,x,y);
                         this.addNode(rect.attr("fill"), x, y)
                     }
                 }, 100, 2);
@@ -972,14 +980,16 @@ class Constellation {
             this.context.fillRect(this.currX, this.currY, 3, 3);
         };
 
-        this.context.beginPath();
-        this.isFirstPoint = true;
         // setup
+        
+        this.context.beginPath();
+
         this.currX = 0;
         this.currY = 0;
 
         this.targetX = 0;
         this.targetY = 0;
+        
         // start
         //d3.timer(this.step);
     }
@@ -987,18 +997,12 @@ class Constellation {
     addPoint (ed, rd, color) {
         /*this.context.fillStyle = "rgba(0, 0, 0, 0.6)";
         this.context.fillRect(0, 0, this.width, this.height);*/
-        const x = convertRange( ed, [ 0, 100 ], [ 0, this.width ] );
-        const y = convertRange( rd, [ 0, 100 ], [ 0, this.height ] );
+        const x = convertRange( ed, [ 0, 80 ], [ 0, this.width ] );
+        const y = convertRange( rd, [ 0, 80 ], [ 0, this.height ] );
         
         this.targetX = x;
         this.targetY = y;
-        /*if (this.isFirstPoint) {
-            this.context.moveTo(x, y)
-            this.isFirstPoint = false;
-        } else {
-            this.context.lineTo(x, y)
-        }
-        */
+
         this.context.strokeStyle = "rgba(255, 255, 255, 1)";
         this.context.stroke()
 
@@ -1015,13 +1019,14 @@ class ShapeDrawing {
         this.count = 0;
         const width = this.width = totalWidth;
         const height = this.height = totalHeight;
-        this.isRight = () => this.count % 2;
 
         this.canvas = d3.select("#shape-drawing").append("canvas")
             .attr("width", width)
             .attr("height", height);
         this.context = this.canvas.node().getContext("2d");
 
+        this.isRight = () => this.count % 2;
+        
         this.clearBackground = () => {
             this.context.fillStyle = "rgba(0,0,0,.005)";
             this.context.fillRect(0, 0, width, height);
@@ -1029,31 +1034,39 @@ class ShapeDrawing {
 
         // draw
         this.step = () => {
-            if (this.isRight()) {
-                this.drawRight();
+            if (!this.isRight()) {
+                this.drawLine(0)
             }
             else {
-                this.drawLeft();
+                this.drawLine(1)
             }
         };
 
-        this.context.beginPath();
-        this.isFirstPoint = true;
         
         // setup
-        this.currXL = 0;
-        this.currYL = 0;
-        this.currXR = totalWidth;
-        this.currYR = 0;
+        this.context.beginPath();
+        var initColor = "#000000";
 
         this.targetX = 0;
         this.targetY = 0;
 
-        this.prevColorLeft = "#000000";
-        this.prevColorRight = "#000000";
-        
-        this.targetColorL = "#000000";
-        this.targetColorR = "#000000";
+        this.leftShapeData = {
+            currX: 0,
+            currY: 0,
+            prevCol: initColor,
+            targetCol: initColor,
+            widthMod: 0
+        }
+
+        this.rightShapeData = {
+            currX: totalWidth,
+            currY: 0,
+            prevCol: initColor,
+            targetCol: initColor,
+            widthMod: totalWidth
+        }
+
+        this.shapeDatas = [this.leftShapeData, this.rightShapeData];
 
         // start
         d3.timer(this.step);
@@ -1063,70 +1076,56 @@ class ShapeDrawing {
         this.percentage = 0;
         const x = convertRange(ed, [0, 100], [0, this.width]);
         const y = convertRange(rd, [0, 100], [0, this.height]);
+        
+        var shapeDataIndex = this.count % 2;
+        console.log("==", shapeDataIndex, this.isRight());
         if (this.count == 1) {
-            this.currXL = x;
-            this.currYL = y;
+            this.leftShapeData.currX = x;
+            this.leftShapeData.currY = y;
         } else if (this.count == 2) {
-            this.currXR = totalWidth - x;
-            this.currYR = y;
+            this.rightShapeData.currX = totalWidth - x;
+            this.rightShapeData.currY = y;
         }
         this.targetX = x;
         this.targetY = y;
 
         if (this.isRight()) {
             this.context.strokeText(text,x,y);
-            this.prevColorLeft = this.targetColorL;
-            this.targetColorL = color;
+            this.shapeDatas[0].prevCol = this.shapeDatas[0].targetCol;
+            this.shapeDatas[0].targetCol = color;
         } else {
             this.context.strokeText(text,totalWidth-x,y);
-            this.prevColorRight = this.targetColorR;
-            this.targetColorR = color;
+            this.shapeDatas[1].prevCol = this.shapeDatas[1].targetCol;
+            this.shapeDatas[1].targetCol = color;
         }
         
         this.count++;
     }
 
-    drawLeft () {
-        //this.clearBackground();
-        var yDiff = this.targetY - this.currYL;
-        var xDiff = this.targetX - this.currXL;
+    drawLine (i) {
+        var data = this.shapeDatas[i];
+        var targetX = data.widthMod ? data.widthMod - this.targetX : this.targetX;
+
+        var yDiff = this.targetY - data.currY;
+        var xDiff = targetX - data.currX;
         var slope = yDiff / xDiff;
+        
         this.percentage += 0.02;
 
-        var rgb1 = hexToRgb(this.prevColorLeft);
-        var rgb2 = hexToRgb(this.targetColorL);
+        var rgb1 = hexToRgb(data.prevCol);
+        var rgb2 = hexToRgb(data.targetCol);
 
         var col = blendColors(rgb1.r, rgb1.g, rgb1.b, rgb2.r, rgb2.g, rgb2.b, this.percentage)
-        //console.log(col)
         col = rgbToHex(col);
-        this.currXL += xDiff / 100;
-        this.currYL += yDiff / 100;
-        if (this.count > 2) {
+        
+        data.currX += xDiff / 100;
+        data.currY += yDiff / 100;
+
+        var minCount = data.widthMod ? 3 : 2;
+
+        if (this.count > minCount) {
             this.context.fillStyle = col;
-            this.context.fillRect(this.currXL, this.currYL, 3, 3);
-        }
-    }
-
-    drawRight () {
-        var targetX = totalWidth - this.targetX;
-        //var targetY = totalHeight - this.targetY;
-
-        var yDiff = this.targetY - this.currYR;
-        var xDiff = targetX - this.currXR;
-        var slope = yDiff / xDiff;
-        this.percentage += 0.02;
-
-        var rgb1 = hexToRgb(this.prevColorRight);
-        var rgb2 = hexToRgb(this.targetColorR);
-
-        var col = blendColors(rgb1.r, rgb1.g, rgb1.b, rgb2.r, rgb2.g, rgb2.b, this.percentage)
-        //console.log(col)
-        col = rgbToHex(col);
-        this.currXR += xDiff / 100;
-        this.currYR += yDiff / 100;
-        if (this.count > 3) {
-            this.context.fillStyle = col;
-            this.context.fillRect(this.currXR, this.currYR, 3, 3);
+            this.context.fillRect(data.currX, data.currY, 3, 3);
         }
     }
 }
@@ -1184,8 +1183,8 @@ class Overlay {
     /* animate the whole canvas under the eye to x, y coordinates */
     setModulesPos(x, y) {
         var xBuffer = totalWidth / -2;
-        var yBuffer = $(".modules").height()/-2;
-        $(".modules").css({"left": x + xBuffer, "top" : y + yBuffer});
+        var yBuffer = $(".dynamic-modules").height()/-2;
+        $(".dynamic-modules").css({"left": x + xBuffer, "top" : y + yBuffer});
     }
 
     /* animate the scale (zoom) of the canvas beneath the eye */
@@ -1193,7 +1192,7 @@ class Overlay {
         console.log("sda");
         this.currScale += amount;
         const newTrans = "scale3d("+this.currScale+","+this.currScale+","+this.currScale+")";
-        $(".modules").css("transform", newTrans);  
+        $(".dynamic-modules").css("transform", newTrans);  
     }
 }
 
@@ -1204,7 +1203,7 @@ class Overlay {
 $(document).on("ready", function () {  
 
     // add svg canvas to all modules
-    d3.selectAll(".module").append("svg")
+    d3.selectAll(".svg-module").append("svg")
                             .attr("width", "100%")
                             .attr("height", "100%");
 
@@ -1218,8 +1217,10 @@ $(document).on("ready", function () {
     shapeDrawingModule = new ShapeDrawing();
     overlayModule = new Overlay();
 
+
     // start with one response
     getResponse();
+
 
 
     // random eye movements
@@ -1242,6 +1243,33 @@ $(document).on("ready", function () {
       
     }
 })
+
+function onYouTubeIframeAPIReady() {
+    ytPlayer = new YT.Player('ytplayer', {
+        videoId: '0', // YouTube Video ID
+        width: totalWidth,               // Player width (in px)
+        height: totalHeight,              // Player height (in px)
+        playerVars: {
+            autoplay: 1,        // Auto-play the video on load
+            controls: 0,        // Show pause/play buttons in player
+            showinfo: 0,        // Hide the video title
+            modestbranding: 1,  // Hide the Youtube Logo
+            rel: 0,
+            loop: 0,            // Run the video in a loop
+            fs: 0,              // Hide the full screen button
+            cc_load_policy: 0,  // Hide closed captions
+            iv_load_policy: 3,  // Hide the Video Annotations
+            autohide: 1         // Hide video controls when playing
+        },
+        events: {
+            onReady: function(e) {
+                e.target.mute();
+            }
+        }
+    });
+}
+
+
 
 function moveEyeToRandomLocation () {
     var vp = getViewport();
@@ -1268,7 +1296,7 @@ function moveEyeToRandomLocation () {
 function moveModuleToRandomLocation() {
     var vp = getViewport();
     var width = vp[0];
-    var height = $(".modules").height();
+    var height = $(".dynamic-modules").height();
     height = height * 2 - height/2;
     var x = Math.random() * width;
     var y = Math.random() * height;
@@ -1282,14 +1310,12 @@ function moveModuleToRandomLocation() {
 
 /* handler for key presses */
 $(window).keypress(function(e) {
-
-    if (e.which === 32) { // space bar
+    console.log(e.which);
+    if (e.which === 99) { // c
         getResponse();
     }
     if (e.which === 122) { // z
         overlayModule.animateZoomTo(-0.3)
-        $("path").css("animation-direction", "reverse");
-        //overlayModule.zoomIn();
     }
     if (e.which === 120) { // x
         overlayModule.animateZoomTo(0.3)
@@ -1396,6 +1422,40 @@ function getResponse () {
                     console.log('No hits');
             });
         }
+
+        if (USE_VIDEOS) {
+          var videoUrl = "https://www.googleapis.com/youtube/v3/search?key="+YOUTUBE_API_KEY+"&part=snippet&q="+encodeURIComponent(data.output);
+          $.getJSON(videoUrl, function(data){
+              console.log(data.items[0].id.videoId);
+              var id = data.items[0].id.videoId;
+              if (ytPlayer) {
+                ytPlayer.loadVideoById(id);
+              }
+              // var videoFrame = '<iframe id="ytplayer" type="text/html" width="'+totalWidth+'" height="'+totalHeight+'"\
+              //   src="https://www.youtube.com/embed/'+id+'?autoplay=1&controls=0&showinfo=0&disablekb=1&iv_load_policy=3&rel=0&origin=http://localhost:8000"\
+              //   frameborder="0"></iframe>'
+              // $("#video-module").html("");
+              // $("#video-module").append(videoFrame);
+          });
+        }
+
+        // var authUrl = "https://www.freesound.org/apiv2/oauth2/authorize/?client_id="+FREESOUND_CLIENT_ID+"&response_type=code&state=xyz"
+        // $.getJSON(authUrl, function(data){
+        //     console.log(data);
+        // });
+
+        /*if (USE_SOUND_EFFECTS) {
+            var url = "http://www.freesound.org/apiv2/search/text/?query="+encodeURIComponent(data.output)+"&token="+FREESOUND_API_KEY;
+        }
+        $.getJSON(url, function(data){
+            console.log(data);
+        });
+
+        var soundUrl = "http://www.freesound.org/apiv2/sounds/"+367186+"/download/&token="+FREESOUND_API_KEY;
+        //var soundUrl = "http://www.freesound.org/apiv2/sounds/"+367186+"&token="+FREESOUND_API_KEY;
+        $.getJSON(soundUrl, function(data){
+            console.log(data);
+        });*/
 
         prevOutput = data.output;
         prevCs = data.cs;
@@ -1559,7 +1619,7 @@ function addSvg (name) {
     xhr = new XMLHttpRequest();
     xhr.open("GET","../img/svgs/"+name+".svg",false);
     xhr.send("");
-    $("#svgContainer").html(xhr.responseXML.documentElement)
+    $("#svg-drawing").html(xhr.responseXML.documentElement)
 }
 
 function convertRange( value, r1, r2 ) { 
