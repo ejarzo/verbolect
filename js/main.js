@@ -1,14 +1,14 @@
 /* ========================================================================== */
 /* =========================== OPTIONS ==================================== */
-const USE_OVERLAY = false;               // "eye" circle
-const USE_RANDOM_MOVEMENTS = false;     // searching around
-const USE_VOICE = false;                 // audio
-const USE_IMAGES = false;                // call image API
-const USE_VIDEOS = false;                // call youtube API
-const USE_SOUND_EFFECTS = true;                // call youtube API
-const USE_IMAGE_EFFECT = false;         // pixelation effect
-const USE_EDGES = false;                // lines connecting the spinners
-const USE_LINE_DRAWING = false;
+const USE_OVERLAY = false;                  // "eye" circle
+const USE_RANDOM_MOVEMENTS = false;         // searching around
+const USE_VOICE = false;                    // audio
+const USE_IMAGES = false;                   // call image API
+const USE_VIDEOS = false;                   // call youtube API
+//const USE_SOUND_EFFECTS = true;           // call freesound API
+const USE_IMAGE_EFFECT = false;             // pixelation effect
+const USE_EDGES = false;                    // lines connecting the spinners
+const USE_LINE_DRAWING = false;             // svg line drawing effect
 
 const EYE_RADIUS = 320;
 const totalWidth = $(".dynamic-modules").width();
@@ -250,22 +250,21 @@ class EmotionManager {
 /* =========================== Variables ==================================== */
 
 // init state
-var prevOutput = "Do you like Radiohead?";
-var prevCs = "";
+let prevOutput = "Do you like Radiohead?";
+let prevCs = "";
 
 // emotion manager
-var EM = new EmotionManager();
+let EM = new EmotionManager();
 
 // the modules
-var particlesModule,
+let particlesModule,
     historyModule,
     gradientModule,
     imageModule,
     constellationModule,
     shapeDrawingModule,
-    canvasSketchModule;
-
-var overlayModule;
+    canvasSketchModule,
+    overlayModule;
 
 
 /* ========================================================================== */
