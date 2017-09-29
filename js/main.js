@@ -1,26 +1,54 @@
 /* ========================================================================== */
-/* =========================== OPTIONS ==================================== */
-const USE_OVERLAY = false;                  // "eye" circle
-const USE_RANDOM_MOVEMENTS = false;         // searching around
+/* ============================ OPTIONS ===================================== */
+
+const USE_OVERLAY = true;                  // "eye" circle
+const USE_RANDOM_MOVEMENTS = true;         // searching around
 const USE_VOICE = false;                    // audio
 const USE_IMAGES = false;                   // call image API
 const USE_VIDEOS = false;                   // call youtube API
-//const USE_SOUND_EFFECTS = true;           // call freesound API
+const USE_SOUND_EFFECTS = false;            // call freesound API
 const USE_IMAGE_EFFECT = false;             // pixelation effect
 const USE_EDGES = false;                    // lines connecting the spinners
 const USE_LINE_DRAWING = false;             // svg line drawing effect
 
-const EYE_RADIUS = 320;
-const totalWidth = $(".dynamic-modules").width();
-const totalHeight = 800;
+const EYE_RADIUS = 320;                     // radius of roving eye
 
-let ytPlayer;
+const totalWidth = $(".dynamic-modules").width(); // width of the view
+const totalHeight = 800;                    // height of the view
+
 
 /* ========================================================================== */
-/* ===================== EMOTION MANAGER CLASS ============================== */
-/*
-  contains arrays for each major emotion that contain their sub-emotions.
-  includes methods for converting emotion to color
+/* =========================== Variables ==================================== */
+
+// emotion manager
+let EM;
+
+// init state
+let prevOutput = "Do you like Radiohead?";
+let prevCs = "";
+
+// youtube player
+let ytPlayer;                               
+
+// the modules
+let particlesModule,
+    historyModule,
+    gradientModule,
+    imageModule,
+    constellationModule,
+    shapeDrawingModule,
+    imageFlickerModule,
+    overlayModule;
+
+/* ========================================================================== */
+/* ======================= CLASS DEFINITIONS ================================ */
+
+
+/* ===================== EMOTION MANAGER CLASS =================================
+    
+    Contains arrays for each major emotion that contain their sub-emotions.
+    Includes methods for converting emotion to color, and finding emotion 
+    categories from specific emotions and responses.
 */
 class EmotionManager {
     constructor () {
@@ -174,6 +202,8 @@ class EmotionManager {
         this.responseNames = ["like", "love", "laughing", "surprise", "sad", "anger", "disgust"];
     }
 
+    /*  Returns the high level emotion category (like, love, laughing, surprise, 
+        sad, anger, or disgust) that the input falls under */
     getEmotionCategory (input) {
         for (var i = 0; i < this.responseLists.length; i++) {
             var list = this.responseLists[i];
@@ -184,18 +214,23 @@ class EmotionManager {
         }
     }
 
+    /* Returns the name of the emotion category at the given index */
     getEmotionCategoryName (index) {
         return this.responseNames[index];
     }
     
+    /* Returns the color in {r,g,b} format for the given emotion */
     getColorForEmotion (input) {
         return this.getColorForEmotionCategory(this.getEmotionCategory(input));
     }
 
+    /* Returns the color of the emotion at index i (in the responseNames array) */
     getColorForEmotionIndex (i) {
         return rgbToHex(this.getColorForEmotionCategory(this.responseNames[i]));
     }
 
+    /*  Returns the color in {r,g,b} format for the input, which is a high 
+        level emotion category */
     getColorForEmotionCategory (input) {
         var r = 0;
         var g = 0;
@@ -245,31 +280,11 @@ class EmotionManager {
     }
 }
 
-
-/* ========================================================================== */
-/* =========================== Variables ==================================== */
-
-// init state
-let prevOutput = "Do you like Radiohead?";
-let prevCs = "";
-
-// emotion manager
-let EM = new EmotionManager();
-
-// the modules
-let particlesModule,
-    historyModule,
-    gradientModule,
-    imageModule,
-    constellationModule,
-    shapeDrawingModule,
-    canvasSketchModule,
-    overlayModule;
-
-
-/* ========================================================================== */
-/* =========================== GRADIENT CLASS =============================== */
-
+/* =========================== GRADIENT CLASS ==================================
+    Responsible for drawing the gradient slider, which represents the 
+    transition from the previous emotion to the current emotion. Includes a
+    method to add a color, which triggers the animation.
+*/
 class Gradient {
     constructor () {
         this.gradientTopSvg = d3.select("#emotion-gradient svg");
@@ -283,9 +298,7 @@ class Gradient {
         this.prevPrevCol = "#000";
     }
 
-    /*
-        adds a color to the gradient, animates from left to right
-    */
+    /* Adds a color to the gradient, animates from left to right */
     addColor (newCol) {
         var colorsList = historyModule.colorsList;        
         var gradientTransition = d3.transition()
@@ -308,9 +321,7 @@ class Gradient {
         this.prevCol = newCol;
     }
 
-    /*
-        renders a gradient in the target svg
-    */
+    /* Renders a gradient in the target svg */
     makeGradient(target, idName, startCol, endCol) {
         var width = "100%"
         var result = target.append("linearGradient")
@@ -340,9 +351,13 @@ class Gradient {
     }
 }
 
-/* ========================================================================== */
-/* ====================== CONVERSATION HISTORY CLASS ======================== */
-
+/* ====================== CONVERSATION HISTORY CLASS ===========================
+    Responsible for the blocks of color that represents the conversation's 
+    history. Each response adds its emotion (color) to the history list, 
+    which is displayed as a series of color bars. The more colors added, the 
+    thinner each color becomes. Includes methods to dd a color, and to dump, 
+    or clear, the colors and reset the list.
+*/
 class History {
     constructor () {
         this.svg = d3.select("#emotion-history-grid svg");
@@ -351,9 +366,7 @@ class History {
         this.blockDumpDuration = 800;
     }
 
-    /*
-      adds a color block to the conversation history module
-    */
+    /* Adds a color block to the conversation history module */
     addColor (newCol) {
         var len = this.colorsList.length;
         if (!len) {len = 1;}
@@ -383,6 +396,7 @@ class History {
         this.colorsList.push(newRect);
     }
 
+    /* Animates the whole module down and out of the frame, resets the list to 0 */
     dumpColors () {
         var t = d3.transition()
                 .duration(this.blockDumpDuration)
@@ -396,9 +410,13 @@ class History {
     }
 }
 
-/* ========================================================================== */
-/* ========================== PARTICLES CLASS =============================== */
-
+/* ========================== PARTICLES CLASS ==================================
+    Responsible for the "ball pit" of colors. Uses a D3 force simulation to 
+    represent the mixing of emotions. Colored circles represent emotions, which 
+    are mixed by rotating spinners, which represnt the two sides of the 
+    conversation. Includes methods to add nodes, update the spinner radius and 
+    speed, and clear the simulation, 
+*/
 class Particles {
     constructor () {
 
@@ -767,9 +785,11 @@ class Particles {
     }
 }
 
-/* ========================================================================== */
-/* ============================ IMAGE CLASS ================================= */
-
+/* ============================ IMAGE CLASS ====================================
+    Responsible for displaying and manipulating images. These images are 
+    retrieved for each response by searching for that response's emotion using
+    the PixaBay API.
+*/
 class ImageDisplay {
     constructor () {
         this.drawPoint = (p) => {
@@ -868,10 +888,13 @@ class ImageDisplay {
     }
 }
 
-/* ========================================================================== */
-/* ========================= SECOND IMAGE CLASS============================== */
+/* ========================= SECOND IMAGE CLASS=================================
 
-class CanvasSketch {
+    The second class responsible for the display and manipulation of images.
+    The images (same ones as used in the ImageDisplay class) are displayed in 
+    a flickering, film-like manner.
+*/
+class ImageFlicker {
     constructor () {
 
         const width = this.width = totalWidth;
@@ -946,9 +969,13 @@ class CanvasSketch {
     }
 }
 
-/* ========================================================================== */
-/* ========================= SECOND IMAGE CLASS============================== */
+/* ======================== CONSTELLATION CLASS ================================ 
 
+    Responsible for the Constellation effect. Every response has a emotion 
+    degree and a reaction degree. This class offers a method to draw one pixel 
+    for each response, using two numbers as the (x,y) coordinates, and the 
+    response's color as the fill color.
+*/
 class Constellation {
     constructor () {
 
@@ -1010,9 +1037,16 @@ class Constellation {
     }
 }
 
-/* ========================================================================== */
-/* ========================= SECOND IMAGE CLASS============================== */
-
+/* ======================== SHAPE DRAWING CLASS ================================
+    
+    Responsible for the animated polygon effect. Every response calls addPoint,
+    which, swithcing off between two shapes, animates a line to the next point.
+    Each point is (like the in constellation) using the emotion and reaction 
+    degrees as coordinates. For the right shape, the coordinates are flipped 
+    over the y axis. Each point also shows the response text that point. The
+    lines animate from their current color (emotion) to the next 
+    color (emotion).
+*/
 class ShapeDrawing {
     constructor () {
         this.count = 0;
@@ -1076,8 +1110,8 @@ class ShapeDrawing {
         const x = convertRange(ed, [0, 100], [0, this.width]);
         const y = convertRange(rd, [0, 100], [0, this.height]);
         
-        var shapeDataIndex = this.count % 2;
-        console.log("==", shapeDataIndex, this.isRight());
+        //var shapeDataIndex = this.count % 2;
+
         if (this.count == 1) {
             this.leftShapeData.currX = x;
             this.leftShapeData.currY = y;
@@ -1128,11 +1162,13 @@ class ShapeDrawing {
         }
     }
 }
-/* ========================================================================== */
-/* ============================ OVERLAY CLASS =============================== */
-/*
-    responsible for the "roving eye" effect
-    overlay is a black rectangle with a circle cut out 
+
+/* ============================ OVERLAY CLASS ==================================
+    
+    Responsible for the "roving eye" effect which represents examination and 
+    searching for answers. The Overlay is a black rectangle with a circle cut 
+    out. Includes methods to move to certain coordinates, and to "Blink", which
+    switches the module that the eye is looking at. 
 */
 class Overlay {
     constructor () {
@@ -1186,6 +1222,41 @@ class Overlay {
         $(".dynamic-modules").css({"left": x + xBuffer, "top" : y + yBuffer});
     }
 
+    /* moves eye to random position */
+    moveEyeToRandomLocation () {
+        var vp = getViewport();
+        var width = vp[0];
+        var height = vp[1];
+        var x = Math.random() * vp[0];
+        x = (x < EYE_RADIUS) ? EYE_RADIUS : x;
+        x = (x > width - EYE_RADIUS) ? width - EYE_RADIUS : x;
+        y = (y < EYE_RADIUS) ? EYE_RADIUS : y;
+        y = (y > height - EYE_RADIUS) ? height - EYE_RADIUS : y;
+
+        var y = Math.random() * vp[1];
+        // if (x > width-width/4 || x < width/4) {
+        //     x = (x * Math.random() * .8) + (width / 2);
+        // }
+
+        // if (y > height-height/4 || x < height/4) {
+        //     y = (y * Math.random() * .8) + (height / 2);
+        // }
+
+        this.setOverlayPos(x, y)
+    }
+
+    /* moves modules to random position */
+    moveModulesToRandomLocation () {
+        var vp = getViewport();
+        var width = vp[0];
+        var height = $(".dynamic-modules").height();
+        height = height * 2 - height/2;
+        var x = Math.random() * width;
+        var y = Math.random() * height;
+
+        this.setModulesPos(x, y)
+    }
+
     /* animate the scale (zoom) of the canvas beneath the eye */
     animateZoomTo (amount) {
         console.log("sda");
@@ -1207,42 +1278,28 @@ $(document).on("ready", function () {
                             .attr("height", "100%");
 
     // init modules
+    EM = new EmotionManager();
+    
     gradientModule = new Gradient();
     historyModule = new History();
     particlesModule = new Particles();
     imageModule = new ImageDisplay();
-    canvasSketchModule = new CanvasSketch();
+    imageFlickerModule = new ImageFlicker();
     constellationModule = new Constellation();
     shapeDrawingModule = new ShapeDrawing();
     overlayModule = new Overlay();
 
-
     // start with one response
     getResponse();
 
-
-
-    // random eye movements
+    // Start random eye movements
     if (USE_RANDOM_MOVEMENTS) {
-        (function loop() {
-            var rand = Math.round(Math.random() * (3000 - 500)) + 500;
-            setTimeout(function() {
-                moveEyeToRandomLocation();
-                loop();  
-            }, rand);
-        }());
-
-        (function loop() {
-            var rand = Math.round(Math.random() * (3000 - 500)) + 500;
-            setTimeout(function() {
-                moveModuleToRandomLocation();
-                loop();  
-            }, rand);
-        }());
-      
+        loop(5000, 2000, () => overlayModule.moveEyeToRandomLocation());      
+        loop(5000, 2000, () => overlayModule.moveModulesToRandomLocation());      
     }
 })
 
+/* initialize the youtube player iframe */
 function onYouTubeIframeAPIReady() {
     ytPlayer = new YT.Player('ytplayer', {
         videoId: '0', // YouTube Video ID
@@ -1267,42 +1324,6 @@ function onYouTubeIframeAPIReady() {
         }
     });
 }
-
-
-
-function moveEyeToRandomLocation () {
-    var vp = getViewport();
-    var width = vp[0];
-    var height = vp[1];
-    var x = Math.random() * vp[0];
-    x = (x < EYE_RADIUS) ? EYE_RADIUS : x;
-    x = (x > width - EYE_RADIUS) ? width - EYE_RADIUS : x;
-    y = (y < EYE_RADIUS) ? EYE_RADIUS : y;
-    y = (y > height - EYE_RADIUS) ? height - EYE_RADIUS : y;
-
-    var y = Math.random() * vp[1];
-    // if (x > width-width/4 || x < width/4) {
-    //     x = (x * Math.random() * .8) + (width / 2);
-    // }
-
-    // if (y > height-height/4 || x < height/4) {
-    //     y = (y * Math.random() * .8) + (height / 2);
-    // }
-
-    overlayModule.setOverlayPos(x, y)
-}
-
-function moveModuleToRandomLocation() {
-    var vp = getViewport();
-    var width = vp[0];
-    var height = $(".dynamic-modules").height();
-    height = height * 2 - height/2;
-    var x = Math.random() * width;
-    var y = Math.random() * height;
-
-    overlayModule.setModulesPos(x, y)
-}
-
 
 /* ========================================================================== */
 /* ============================= HANDLERS =================================== */
@@ -1412,7 +1433,7 @@ function getResponse () {
                     let index = Math.floor(Math.random() * max);
                     //console.log(data.hits[index]);
                     imageModule.addImage(data.hits[index].webformatURL, isRight);
-                    canvasSketchModule.addImage(data.hits[index].webformatURL, isRight);
+                    imageFlickerModule.addImage(data.hits[index].webformatURL, isRight);
                     /*$.each(data.hits, function(i, hit){
                         console.log(hit.webformatURL); 
                     });*/
@@ -1530,6 +1551,14 @@ function setIntervalX(callback, delay, repetitions) {
     }, delay);
 }
 
+function loop (maxTime, minTime, callback) {
+    var rand = Math.round(Math.random() * (maxTime - minTime)) + minTime;
+    setTimeout(function() {
+        callback();
+        loop(maxTime, minTime, callback);  
+    }, rand);
+}
+
 /* returns the center point of a circle, used for circles that are transformed */
 function getCircleCenter (circle) {
     var ctm = circle.node().getCTM();
@@ -1624,7 +1653,6 @@ function addSvg (name) {
 function convertRange( value, r1, r2 ) { 
     return ( value - r1[ 0 ] ) * ( r2[ 1 ] - r2[ 0 ] ) / ( r1[ 1 ] - r1[ 0 ] ) + r2[ 0 ];
 }
-
 
 function blendColors(r1,g1,b1,r2,g2,b2,balance) {
     var bal = Math.min(Math.max(balance,0),1);
