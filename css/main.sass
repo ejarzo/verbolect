@@ -1,8 +1,6 @@
 //@import url('https://fonts.googleapis.com/css?family=Inconsolata:400,700')
 
 // variables
-$module-height: 800px
-//$gradient-margin-bottom: -800px
 $total-width: 1280px
 $total-height: 800px
 
@@ -30,7 +28,7 @@ html
         background: none
     .loading-spinner
         position: absolute
-        left: 220px
+        left: 3px
         top: 3px
         display: none
 
@@ -39,6 +37,7 @@ html
 
 #overlay
     position: fixed
+    -webkit-transition: all 0.03s
     z-index: 1000
 
 .centered
@@ -50,7 +49,6 @@ html
     //margin: 20px auto
     display: inline-block
     width: $total-width
-
     left: 0
     right: 0
 
@@ -92,7 +90,7 @@ html
 
 .text-output
     position: fixed
-    z-index: 2000
+    //z-index: 2000
     bottom: 0
     //top: 0
     left: 0
@@ -107,7 +105,13 @@ html
         display: table-row
         vertical-align: bottom
         height: 1px
-    .text-output-r
+    .text-output-0
+        position: absolute
+        left: 0
+        bottom: 20px
+        padding: 20px
+        opacity: 0.5
+    .text-output-1
         position: absolute
         right: 0
         bottom: 20px
@@ -115,42 +119,37 @@ html
         float: right
         text-align: right
         opacity: 0.5
-    .text-output-l
-        position: absolute
-        left: 0
-        bottom: 20px
-        padding: 20px
-        opacity: 0.5
         //float: left
-
 
 .dynamic-modules
     transition: 0.5s
     -webkit-transition: all 0.5s
-    //position: absolute
-    //left: 0
-    //right: auto
-    //top: 800px
     -webkit-transform: scale3d(1,1,1)
 
     .module-section
-        //border: 10px solid #f00
         width: $total-width
         min-height: $total-height
         margin: 30px 0
+        //border: 10px solid #f00
+        //display: none
 
-    #gradient-and-history
-        height: calc(2 * $total-height)
+    #gradient-group
+        height: $total-height
     
-        #emotion-gradient
-            overflow: hidden
-            position: relative
-            top: 0
-            svg
-                width: $total-width
+    #emotion-history-grid
+        height: total-height
+        svg
+            height: $total-height
 
-        #emotion-gradient-bottom
-            margin-bottom: -800px
+    #emotion-gradient
+        overflow: hidden
+        position: relative
+        top: 0
+        svg
+            width: $total-width
+
+    #emotion-gradient-bottom
+        margin-bottom: -800px
 
     #particles
         height: $total-height

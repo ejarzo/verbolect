@@ -1,17 +1,21 @@
 /* ========================================================================== */
 /* ============================ OPTIONS ===================================== */
 
-const USE_OVERLAY = true;                  // "eye" circle
-const USE_RANDOM_MOVEMENTS = true;         // searching around
-const USE_VOICE = false;                    // audio
-const USE_IMAGES = false;                   // call image API
-const USE_VIDEOS = false;                   // call youtube API
-const USE_SOUND_EFFECTS = false;            // call freesound API
-const USE_IMAGE_EFFECT = false;             // pixelation effect
-const USE_EDGES = false;                    // lines connecting the spinners
-const USE_LINE_DRAWING = false;             // svg line drawing effect
+const USE_OVERLAY           = 0;    // "eye" circle
+const USE_RANDOM_MOVEMENTS  = 0;    // searching around
+const USE_VOICE             = 1;    // audio
+const USE_IMAGES            = 1;    // call image API
+const USE_VIDEOS            = 1;    // call youtube API
+const USE_SOUND_EFFECTS     = 0;    // call freesound API
+const USE_IMAGE_EFFECT      = 0;    // pixelation effect
+const USE_EDGES             = 0;    // lines connecting the spinners
+const USE_LINE_DRAWING      = 0;    // svg line drawing effect
+const USE_TEXT              = 0;    // text output overlay
+const USE_CHAPTERS          = 0;    // shows one "chapter" at a time if true
+const USE_GRAVITY           = 1;    // use gravity in the particle simulation
 
-const EYE_RADIUS = 320;                     // radius of roving eye
+const EYE_RADIUS            = 320;  // radius of roving eye
+const EYE_SIZE_CHANGE_MOD   = 5;    // how often the eye changes size
 
 const totalWidth = $(".dynamic-modules").width(); // width of the view
 const totalHeight = 800;                    // height of the view
@@ -39,6 +43,15 @@ let particlesModule,
     shapeDrawingModule,
     imageFlickerModule,
     overlayModule;
+
+// modules that will show and hide
+let dynamicModulesList = [
+        () => $("#ytplayer"), 
+        () => $("#gradient-group"),
+        () => $("#emotion-history-grid"),
+        () => $("#particles"),
+        () => $("#canvas-sketch")
+    ];
 
 /* ========================================================================== */
 /* ======================= CLASS DEFINITIONS ================================ */
@@ -423,7 +436,7 @@ class Particles {
         /* --------------------------- FUNCTIONS ---------------------------- */
 
         this.initSimulation = () => {
-            spinner = spinner.data(spinners);
+            spinner = spinner.data(spinnerFollowers);
             floor = floor.data(floors);
             platform = platform.data(platforms);
 
@@ -487,16 +500,18 @@ class Particles {
         }
 
         this.gravity = (alpha) => {
-          for (var i = 0; i < nodes.length; i++) {
-            let p = nodes[i]
-            
-            // bound within box
-            p.x = Math.max(nodeRadius, Math.min(width - nodeRadius, p.x));
-            p.y = Math.max(nodeRadius, Math.min(height - nodeRadius, p.y));
+            if (USE_GRAVITY) {
+                for (var i = 0; i < nodes.length; i++) {
+                    let p = nodes[i]
 
-            // gravity
-            p.vy += Math.min(0.5, Math.max(0, (p.y - (- height / 2 - 20)) / height ))
-          }
+                    // bound within box
+                    p.x = Math.max(nodeRadius, Math.min(width - nodeRadius, p.x));
+                    p.y = Math.max(nodeRadius, Math.min(height - nodeRadius, p.y));
+
+                    // gravity
+                    p.vy += Math.min(0.5, Math.max(0, (p.y - (- height / 2 - 20)) / height ))
+                }
+            }
         }
 
         this.dumpColors = (rectList) => {
@@ -505,14 +520,14 @@ class Particles {
                       bbox = rect.node().getBoundingClientRect(),
                       combinedRadius = nodeRadius + nodeBuffer,
                       numNodesPerColor = Math.floor(bbox.width / (2 * combinedRadius));
-                console.log(rect)
+                //console.log(rect)
                 setIntervalX( () => {
                     for (let i = 0; i < numNodesPerColor; i++) {
                         const x = bbox.left + i * 2 * (combinedRadius);
                         //const y = height/-2 + combinedRadius;
                         const y = 2*combinedRadius;
 
-                        console.log("-----", i,x,y);
+                        //console.log("-----", i,x,y);
                         this.addNode(rect.attr("fill"), x, y)
                     }
                 }, 100, 2);
@@ -525,29 +540,25 @@ class Particles {
         }
 
         this.setSpinnerRadius = (i, r) => {
-
+            spinners[i].radius = r;
         }
         
         this.setSpinnerSpeed = (i, s) => {
-            if (i == 0) {
-                spinner1Speed = s;
-            } else {
-                spinner2Speed = s;
-            }
+            // invert
+            var speed = 100 / s; 
+            spinners[i].speed = 100 / s
         } 
         
         this.setSpinnerPos = () => {
-            var circle1Center = getCircleCenter(d3.select(".spinner1"))
-            var circle2Center = getCircleCenter(d3.select(".spinner2"))
-            
             floors[0].x = midX;
             floors[0].y = floorY;
-
-            spinners[0].x = circle1Center.x;
-            spinners[0].y = circle1Center.y;
-            
-            spinners[1].x = circle2Center.x;
-            spinners[1].y = circle2Center.y;  
+            spinners.forEach((spinner, i) => {
+                if (spinner.elem) {
+                    var center = getCircleCenter(spinner.elem);
+                    spinnerFollowers[i].x = center.x;
+                    spinnerFollowers[i].y = center.y;
+                }
+            })
         }
 
         /* ------------------------------------------------------------------ */
@@ -560,28 +571,19 @@ class Particles {
         */
         this.initSpinners = () => {
             
-            // center of rotation for left circle
-            var cx1 = width / 4;
-            var cy1 = height / 2;
-            
-            // center of rotation for right circle
-            var cx2 = width - width / 4;
-            var cy2 = height / 2;
+            // center points
+            var cxs = [width/4, width - width/4];
 
             // spinning circles
             var spinnerCircles = rotateElements.append("g").attr("fill", "#fff");
             
-            var spinner1 = spinnerCircles.append("circle")
-                .attr("r", 15)
-                .attr("cx", cx1)
-                .attr("cy", height / 2 - spinner1Radius)
-                .attr("class", "spinner1");
+            spinners.forEach((spinner, i) => {
+                spinner.elem = spinnerCircles.append("circle")
+                    .attr("r", 15)
+                    .attr("cx", cxs[i])
+                    .attr("cy", height / 2 - spinner.radius)
+            })
 
-            var spinner2 = spinnerCircles.append("circle")
-                .attr("r", 15)
-                .attr("cx", cx2)
-                .attr("cy", height / 2 - spinner2Radius)
-                .attr("class", "spinner2");
 
             // the lines tha connect the circles
             var edges = rotateElements.append("g").attr("stroke", "white").attr("stroke-width", "2");
@@ -619,8 +621,13 @@ class Particles {
         this.animateSpinners = () => {
             if (mode === 0) {
                 d3.timer(function() {
-                    var angle1 = ((Date.now() - start) / spinner1Speed);
-                    var angle2 = ((Date.now() - start) / spinner2Speed);
+                    
+                    spinners.forEach((spinner) => {
+                        spinner.elem.attr("cy", height / 2 - spinner.radius)
+                    })
+
+                    var angle1 = ((Date.now() - start) / spinners[0].speed);
+                    var angle2 = ((Date.now() - start) / spinners[1].speed);
                     
                     var transformCircle1 = function() {
                         return "rotate(" + angle1 + "," + width / 4 + "," + height / 2 +")";
@@ -629,9 +636,10 @@ class Particles {
                         return "rotate(" + angle2 + "," + (width - width / 4) + "," + height / 2 +")";
                     };
                     
+
                     // animate circles
-                    var circle1 = d3.select(".spinner1");
-                    var circle2 = d3.select(".spinner2");
+                    var circle1 = spinners[0].elem;
+                    var circle2 = spinners[1].elem;
 
                     circle1.attr("transform", transformCircle1);
                     circle2.attr("transform", transformCircle2);
@@ -687,25 +695,32 @@ class Particles {
 
         // items in the simulation
         var nodes = [],
-            spinners = [
+            spinnerFollowers = [
                 {radius: spinnerRadius},   // left wall
                 {radius: spinnerRadius}    // right wall
             ],
-            floors = [
-                {radius: floorRadius},
-                //{fx: width/2,  fy: 0, rx: floorRadius, ry: 10},
-            ],
-            platforms = this.generatePlatform(0, 40, 200, 100).concat(
+            floors = [{radius: floorRadius}],
+
+           /* platforms = this.generatePlatform(0, 40, 200, 100).concat(
                         this.generatePlatform(width, 40, width - 200, 100)).concat(
-                        this.generatePlatform(midX - 50, midY, midX + 50, midY));
+                        this.generatePlatform(midX - 50, midY, midX + 50, midY));*/
+
+            platforms = this.generateRect(30, 30, 50, 50).concat(
+                        this.generateRect(230, 30, 50, 50).concat(
+                        this.generateRect(430, 30, 50, 50).concat(
+                        this.generateRect(630, 30, 50, 50).concat(
+                        this.generateRect(830, 30, 50, 50).concat(
+                        this.generateRect(1030, 30, 50, 50).concat(
+                        this.generateRect(totalWidth-80, 30, 50, 50).concat(
+                        this.generateRect(midX-25, midY-25, 50, 50))))))));
 
         // combine simulation items into single array
-        var getForceNodes = () => platforms.concat(floors.concat(spinners.concat(nodes)));
+        var getForceNodes = () => platforms.concat(floors.concat(spinnerFollowers.concat(nodes)));
 
         // simulation vars
         var aDecay = 0.1,
             vDecay = 0.05,
-            chargeStrength = 2,
+            chargeStrength = 0.1,
             gravityStrength = 0.03,
             collideStrength = 1.3,
             collideIterations = 3;
@@ -731,9 +746,7 @@ class Particles {
             floor    = g.append("g").selectAll(".floor"),
             platform = g.append("g").selectAll(".platform");
 
-        /* ------------------------------------------------------------------ */
-
-        // spinners
+        // spinner
         var rotateElements = svg.append("g"),
             mode = 0,
             start = Date.now(),
@@ -742,15 +755,28 @@ class Particles {
             spinner2Speed = 10,
             spinner1Radius = 100,
             spinner2Radius = 50;
-        /* ------------------------------------------------------------------ */
 
-        // intit 
+        var spinners = [
+            {
+                elem: null,
+                radius: 100,
+                speed: 10 
+            }, {
+                elem: null,
+                radius: 100,
+                speed: 10 
+            }
+        ];
+
+        // init
         this.initSimulation();
         this.initSpinners();
         this.setSpinnerPos();
+
         if (animateSpinnersActive) {
             this.animateSpinners();
         }
+        
         this.restart();
     }
 
@@ -782,6 +808,13 @@ class Particles {
         //result.push({fx: x2,fy: y2,radius: 5,fill: "#F00"})
 
         return result;
+    }
+
+    generateRect (x, y, w, h) {
+        return this.generatePlatform(x, y, x+w, y).concat(
+               this.generatePlatform(x, y, x, y+h).concat(
+               this.generatePlatform(x, y+h, x+w, y+h).concat(
+               this.generatePlatform(x+w, y, x+w, y+h))));
     }
 }
 
@@ -817,7 +850,7 @@ class ImageDisplay {
             });
         };
 
-        var width = this.height = totalWidth;
+        var width = this.width = totalWidth;
         var height = this.height = totalHeight;
         
         this.canvas = d3.select("#image-module").append("canvas")
@@ -889,7 +922,6 @@ class ImageDisplay {
 }
 
 /* ========================= SECOND IMAGE CLASS=================================
-
     The second class responsible for the display and manipulation of images.
     The images (same ones as used in the ImageDisplay class) are displayed in 
     a flickering, film-like manner.
@@ -899,8 +931,14 @@ class ImageFlicker {
 
         const width = this.width = totalWidth;
         const height = this.height = totalHeight;
-        this.image;
+        this.imageRight;
+        this.imageLeft;
         this.images = [];
+
+        this.tagsRight = [];
+        this.tagsLeft = [];
+
+        this.isActive = true;
 
         this.canvas = d3.select("#canvas-sketch").append("canvas")
             .attr("width", width)
@@ -916,47 +954,96 @@ class ImageFlicker {
         this.step = () => {
             this.clearBackground();
             
-            if(this.images.length > 0) {
-                var imgXPos = Math.random()*totalWidth/2 + 1;
-                var imgWidth = Math.random()*totalWidth + 1;
+            var imgXPos = Math.random()*totalWidth/2 + 1;
+            var imgWidth = Math.random()*totalWidth + 1;
 
-                this.context.globalAlpha = 0.5;
-                this.context.drawImage(this.images[this.images.length-1], imgXPos, 0, imgWidth, this.height);
+            this.context.globalAlpha = 0.1;
+            //this.context.drawImage(this.imageLeft, imgXPos, 0, imgWidth, this.height);
+            //this.context.drawImage(this.imageRight, totalWidth - imgXPos - imgWidth, 0, imgWidth, this.height);
 
-                var imgData = this.context.getImageData(0,0, imgWidth, height);
-                var data = imgData.data;
+            this.images.forEach((image) => {
+                this.context.drawImage(image, Math.random()*totalWidth/2 + 1, 0, Math.random()*totalWidth + 1, this.height);
+            })
+            //var imgData = this.context.getImageData(0,0, imgWidth, height);
+            //var data = imgData.data;
 
-                // Rescale the colors.
-                // TODO
-                for (var i = 0, n = imgWidth * this.height * 4, d = data; i < n; i += 4) {
-                  d[i + 0] += 0; // r
-                  d[i + 1] += 0; // g
-                  d[i + 2] += 0; // b
-                }
+            // Rescale the colors.
+            // TODO
+           /* for (var i = 0, n = imgWidth * this.height * 4, d = data; i < n; i += 4) {
+              d[i + 0] += 0; // r
+              d[i + 1] += 0; // g
+              d[i + 2] += 0; // b
+            }*/
 
-                this.context.putImageData(imgData, imgXPos, 0);
-            }
+            //this.context.putImageData(imgData, imgXPos, 0);
 
             // TODO
-            this.context.fillStyle = "rgba(200,0,0,1)";
-            this.context.fillRect(this.xPos, 10, 10, this.height);
-            this.xPos+= 10;
+            this.context.globalAlpha = 0.5;
+
+            this.context.fillStyle = "rgba(255,255,255,0.8)";
+            this.context.fillRect(this.xPos, 0, 5, this.height);
+            
+            this.context.fillStyle = "rgba(255,255,255,0.8)";
+            this.context.fillRect(this.xPos2, 0, 5, this.height);
+
+            this.context.strokeStyle = "rgba(255,255,255,0.3)";
+            this.context.strokeWidth = 1;
+            this.context.font="30px Inconsolata";
+
+            //console.log(this.tags);
+
+            //var rand1 = parseInt(Math.random() * this.tags.length);
+            //var rand2 = parseInt(Math.random() * this.tags.length);
+            //console.log("====", rand1);
+
+            const numWords = 5;
+
+            // red line
+            this.context.textAlign = "right";
+            
+            if (this.tagsRight.length > 0) {
+                for (var i = 0; i < numWords; i++) {
+                    this.context.strokeText(this.tagsRight[parseInt(Math.random() * this.tagsRight.length)], this.xPos, Math.random()*this.height);
+                }
+            }
+           
+            // blue line
+            this.context.textAlign = "left";
+            if (this.tagsLeft.length > 0) {
+                for (var i = 0; i < numWords; i++) {
+                    this.context.strokeText(this.tagsLeft[parseInt(Math.random() * this.tagsLeft.length)], this.xPos2, Math.random()*this.height);
+                }
+            }
+
+            this.xPos += 2;
+            this.xPos2 -= 2;
 
             // reset position when reaches end
             if (this.xPos > width) {
                 this.xPos = 0;
             }
+            if (this.xPos2 < 0) {
+                this.xPos2 = width;
+            }
         };
 
         // setup
         this.xPos = 0;
+        this.xPos2 = width;
 
         // start
-        d3.timer(this.step);
+        this.timer = d3.timer(this.step);
     }
 
-    addImage (url, isRight) {
+    addImage (url, isRight, tags) {
         this.getImage(url, (image) => {
+            if (isRight) {
+                this.tagsRight = tags.split(',');
+                this.imageRight = image;
+            } else {
+                this.tagsLeft = tags.split(',');
+                this.imageLeft = image;
+            }
             this.images.push(image);
         });     
     }
@@ -967,9 +1054,18 @@ class ImageFlicker {
       imgObj.src = path;
       imgObj.setAttribute('crossOrigin', '');
     }
+
+    toggleActive () {
+        if (this.isActive) {
+            this.timer.stop();
+        } else {
+            this.timer = d3.timer(this.step);
+        }
+        this.isActive = !this.isActive;
+    }
 }
 
-/* ======================== CONSTELLATION CLASS ================================ 
+/* ======================== CONSTELLATION CLASS ================================
 
     Responsible for the Constellation effect. Every response has a emotion 
     degree and a reaction degree. This class offers a method to draw one pixel 
@@ -1173,7 +1269,9 @@ class ShapeDrawing {
 class Overlay {
     constructor () {
         this.ctx = overlay.getContext('2d');
-        this.radius;
+        this.radius = EYE_RADIUS;
+        this.blurAmount = 40;
+
         if (USE_OVERLAY) {
             this.renderOverlay();
         }
@@ -1185,26 +1283,111 @@ class Overlay {
         const vp = getViewport();
         overlay.width = 3 * vp[0];
         overlay.height = 3 * vp[1];
+
         $("#overlay").css({"left": -0.33 * overlay.width, "top": -0.33 * overlay.height});
-        this.radius = EYE_RADIUS;
         this.ctx.fillStyle = '#000';
         
         this.ctx.fillRect(-1*overlay.width, -1*overlay.height, overlay.width*2, overlay.height*2);
-        this.clipArc(this.ctx, overlay.width/2, overlay.height/2, this.radius, 10);
+        this.clipArc(this.ctx, overlay.width/2, overlay.height/2, this.radius, this.radius, 10, this.blurAmount);
     }
 
     /* Draw cutout circle */
-    clipArc(ctx, x, y, r, f) {
+    clipArc(ctx, x, y, rx, ry, f, blurAmount) {
         ctx.globalCompositeOperation = 'destination-out';
 
-        ctx.filter = "blur(40px)";  // "feather"
+        ctx.filter = "blur("+blurAmount+"px)";  // "feather"
         ctx.beginPath();
-        ctx.arc(x, y, r, 0, 2 * Math.PI);
+        ctx.ellipse(x, y, rx, ry, 0, 0, 2 * Math.PI);
         ctx.fill();
 
         // reset comp. mode and filter
         ctx.globalCompositeOperation = 'destination-out';
         ctx.filter = "none";
+    }
+
+    blink () {
+        var speed = 100;
+        var closedTime = 200;
+
+        var count = speed;
+        if (USE_OVERLAY) {
+            var t = d3.timer(() => {
+                if (this.radius - count < 0) {
+                    t.stop();
+                    
+                    imageFlickerModule.toggleActive();
+                    this.blinkClosed(this.radius);
+                    
+                    const randIndex = parseInt(Math.random() * dynamicModulesList.length);
+                    switchChapter(randIndex);
+                   
+                    count = this.radius;
+                    var t2 = d3.timer((elapsed) => {
+                        if (elapsed > closedTime) {
+                            if (count <= 0) {
+                                t2.stop();
+                                this.blinkClosed(0);
+                            } else {
+                                this.blinkClosed(count);
+                                count -= speed;
+                            }                
+                        }
+                    })
+                } else {
+                    this.blinkClosed(count);
+                    count += speed;
+                }
+            }, 0);
+        }
+    }
+   
+    blinkClosed (count) {
+        const vp = getViewport();
+        overlay.width = 3 * vp[0];
+        overlay.height = 3 * vp[1];
+
+        this.ctx.fillRect(-1*overlay.width, -1*overlay.height, overlay.width*2, overlay.height*2);
+        this.clipArc(this.ctx, overlay.width/2, overlay.height/2, this.radius, this.radius - count, 10, this.blurAmount);
+    }
+    
+    setEyeRadius (targetR) {
+        var diff = targetR - this.radius;
+        var speed = 6;
+        var count = (diff > 0) ? speed : -1 * speed;
+
+        var t = d3.timer(() => {
+            if (diff > 0) {
+                if (this.radius + count >= targetR) {
+                    t.stop();
+                    //this.animateRadius(targetR);
+                    this.radius = targetR;
+                } else {
+                    this.animateRadius(count);
+                    count += speed; 
+                }
+            } else {
+                if (this.radius + count <= targetR) {
+                    t.stop();
+                    //this.animateRadius(targetR);
+                    this.radius = targetR;
+                } else {
+                    this.animateRadius(count);
+                    count -= speed;
+                }
+            }
+        })
+    }
+
+    animateRadius (count) {
+        const vp = getViewport();
+        overlay.width = 3 * vp[0];
+        overlay.height = 3 * vp[1];
+
+        var targetR = this.radius + count;
+        this.blurAmount = targetR*0.1;
+
+        this.ctx.fillRect(-1*overlay.width, -1*overlay.height, overlay.width*2, overlay.height*2);
+        this.clipArc(this.ctx, overlay.width/2, overlay.height/2, targetR, targetR, 10, this.blurAmount);
     }
 
     /* animate the overlay center to x, y coordinates */
@@ -1259,7 +1442,6 @@ class Overlay {
 
     /* animate the scale (zoom) of the canvas beneath the eye */
     animateZoomTo (amount) {
-        console.log("sda");
         this.currScale += amount;
         const newTrans = "scale3d("+this.currScale+","+this.currScale+","+this.currScale+")";
         $(".dynamic-modules").css("transform", newTrans);  
@@ -1289,13 +1471,18 @@ $(document).on("ready", function () {
     shapeDrawingModule = new ShapeDrawing();
     overlayModule = new Overlay();
 
+    if (USE_CHAPTERS) {
+        $(".dynamic-modules .module-section").hide();
+    }
+
     // start with one response
     getResponse();
+    overlayModule.blink();
 
     // Start random eye movements
     if (USE_RANDOM_MOVEMENTS) {
         loop(5000, 2000, () => overlayModule.moveEyeToRandomLocation());      
-        loop(5000, 2000, () => overlayModule.moveModulesToRandomLocation());      
+        //loop(5000, 2000, () => overlayModule.moveModulesToRandomLocation());      
     }
 })
 
@@ -1328,7 +1515,7 @@ function onYouTubeIframeAPIReady() {
 /* ========================================================================== */
 /* ============================= HANDLERS =================================== */
 
-/* handler for key presses */
+/* Keyboard shortcuts */
 $(window).keypress(function(e) {
     console.log(e.which);
     if (e.which === 99) { // c
@@ -1339,10 +1526,27 @@ $(window).keypress(function(e) {
     }
     if (e.which === 120) { // x
         overlayModule.animateZoomTo(0.3)
+    } 
+    if (e.which === 98) { // b
+        if (USE_OVERLAY) {
+            overlayModule.blink();
+        } else {
+            switchChapter(parseInt(Math.random() * dynamicModulesList.length))
+        }
+    } 
+    if (e.which === 110) { // n
+        overlayModule.setEyeRadius(800);
+    }
+    if (e.which === 100) { // d
+        dump();
+    }
+    if (e.which === 102) {  // f
+        clearParticles();
     }
 });
 
 function dump () {
+    console.log("dumping", historyModule.colorsList);
     particlesModule.dumpColors(historyModule.colorsList);
     historyModule.dumpColors();
 }
@@ -1351,15 +1555,13 @@ function clearParticles () {
     particlesModule.clear();
 }
 
-$(".enter-fullscreen").on("click", function () {
-    toggleFullScreen();
-});
-
-$(document).on("mousemove", function(e) {
-    //overlayModule.setOverlayPos(e.clientX, e.clientY);
-    //overlayModule.setModulesPos(e.clientX, e.clientY);
-})
-
+function switchChapter (i) {
+    if (USE_CHAPTERS) {
+        console.log("SWITCHING TO ", i);
+        $(".dynamic-modules .module-section").hide();
+        dynamicModulesList[i]().show();
+    }
+}
 /* ========================================================================== */
 /* =========================== GET RESPONSE ================================= */
 
@@ -1373,11 +1575,10 @@ function getResponse () {
         addSvg(parseInt(Math.random()*11) + 1);
     }
 
-    var stringWithoutSpaces = encodeURIComponent(prevOutput)
-    //.replace(/\s/g, '+');
     var url = "http://www.cleverbot.com/getreply?key=" + APIKEY + "&input=" + 
-                stringWithoutSpaces + "&cs=" + prevCs + "&cb_settings_emotion=yes";
+                encodeURIComponent(prevOutput) + "&cs=" + prevCs + "&cb_settings_emotion=yes";
     
+    // call cleverbot API
     $.getJSON(url, function(data) {        
         if (true) {
             //console.log(data);
@@ -1393,89 +1594,73 @@ function getResponse () {
         var emotionCategory = EM.getEmotionCategory(data.emotion);
         
         // left or right
-        let isRight = true;
+        let botIndex = 1;
+
         if (data.interaction_count % 2) {
-            typeWriter(".text-output-l", data.output, 0)
+            botIndex = 0;
             isRight = false;
-            
-            particlesModule.setSpinnerSpeed(0, (data.emotion_degree + 1) / 20);
-        } else {
-            typeWriter(".text-output-r", data.output, 0)
-            
-            particlesModule.setSpinnerSpeed(1, (data.emotion_degree + 1) / 20);
         }
 
+        // text output
+        if (USE_TEXT) {
+            typeWriter(".text-output-"+botIndex, data.output, 0)
+        }
+
+        // spinner speed and radius
+        const newSpinnerSpeed = convertRange(data.emotion_degree, [0, 80], [1, 70]);
+        const newSpinnerRadius = convertRange(data.reaction_degree, [0, 80], [1, 200]);
+
+        particlesModule.setSpinnerSpeed(botIndex, newSpinnerSpeed);
+        particlesModule.setSpinnerRadius(botIndex, newSpinnerRadius);
+
+        // set eye size
+        if (data.interaction_count % EYE_SIZE_CHANGE_MOD == 0 && USE_OVERLAY) {
+            overlayModule.setEyeRadius(Math.random() * totalHeight + 10);
+        }
 
         // get color
         var newCol = rgbToHex(EM.getColorForEmotion(data.emotion));
         constellationModule.addPoint(data.emotion_degree, data.reaction_degree, newCol)
         shapeDrawingModule.addPoint(data.emotion_degree, data.reaction_degree, newCol, data.output)
 
-
+        // gradient
         if (data.interaction_count > 0) {
             gradientModule.addColor(newCol);
         }
 
         // speak
         if (USE_VOICE) {
-            responsiveVoice.speak(data.output, "UK English Male", {rate: Math.random()*2, pitch: Math.random()*1.9+0.1, volume: 1});
+            responsiveVoice.speak(data.output, "UK English Male"/*, {rate: Math.random()*2, pitch: Math.random()*1.9+0.1, volume: 1}*/);
             //sayText();
         }
 
         // call image API
         if (USE_IMAGES) {
-            var imageQuery = data.emotion;
-            var imageUrl = "https://pixabay.com/api/?key="+PIXABAY_API_KEY+"&q="+encodeURIComponent(data.emotion);
-            
+            const imageUrl = "https://pixabay.com/api/?key="+PIXABAY_API_KEY+"&q="+encodeURIComponent(data.emotion);            
             $.getJSON(imageUrl, function(data){
                 if (parseInt(data.totalHits) > 0){
-                    let max = (data.totalHits >= 20) ? 20 : data.totalHits;
-                    let index = Math.floor(Math.random() * max);
-                    //console.log(data.hits[index]);
-                    imageModule.addImage(data.hits[index].webformatURL, isRight);
-                    imageFlickerModule.addImage(data.hits[index].webformatURL, isRight);
-                    /*$.each(data.hits, function(i, hit){
-                        console.log(hit.webformatURL); 
-                    });*/
+                    const max = (data.totalHits >= 20) ? 20 : data.totalHits;
+                    const index = Math.floor(Math.random() * max);
+
+                    // add to modules
+                    imageModule.addImage(data.hits[index].webformatURL, botIndex);
+                    imageFlickerModule.addImage(data.hits[index].webformatURL, botIndex, data.hits[index].tags);
                 }
                 else
                     console.log('No hits');
             });
         }
 
+        // call youtube API
         if (USE_VIDEOS) {
-          var videoUrl = "https://www.googleapis.com/youtube/v3/search?key="+YOUTUBE_API_KEY+"&part=snippet&q="+encodeURIComponent(data.output);
+          const videoUrl = "https://www.googleapis.com/youtube/v3/search?key="+YOUTUBE_API_KEY+"&part=snippet&q="+encodeURIComponent(data.output);
           $.getJSON(videoUrl, function(data){
-              console.log(data.items[0].id.videoId);
-              var id = data.items[0].id.videoId;
+              const id = data.items[0].id.videoId;
               if (ytPlayer) {
                 ytPlayer.loadVideoById(id);
               }
-              // var videoFrame = '<iframe id="ytplayer" type="text/html" width="'+totalWidth+'" height="'+totalHeight+'"\
-              //   src="https://www.youtube.com/embed/'+id+'?autoplay=1&controls=0&showinfo=0&disablekb=1&iv_load_policy=3&rel=0&origin=http://localhost:8000"\
-              //   frameborder="0"></iframe>'
-              // $("#video-module").html("");
-              // $("#video-module").append(videoFrame);
           });
         }
-
-        // var authUrl = "https://www.freesound.org/apiv2/oauth2/authorize/?client_id="+FREESOUND_CLIENT_ID+"&response_type=code&state=xyz"
-        // $.getJSON(authUrl, function(data){
-        //     console.log(data);
-        // });
-
-        /*if (USE_SOUND_EFFECTS) {
-            var url = "http://www.freesound.org/apiv2/search/text/?query="+encodeURIComponent(data.output)+"&token="+FREESOUND_API_KEY;
-        }
-        $.getJSON(url, function(data){
-            console.log(data);
-        });
-
-        var soundUrl = "http://www.freesound.org/apiv2/sounds/"+367186+"/download/&token="+FREESOUND_API_KEY;
-        //var soundUrl = "http://www.freesound.org/apiv2/sounds/"+367186+"&token="+FREESOUND_API_KEY;
-        $.getJSON(soundUrl, function(data){
-            console.log(data);
-        });*/
 
         prevOutput = data.output;
         prevCs = data.cs;
@@ -1484,7 +1669,6 @@ function getResponse () {
 
 /* ========================================================================== */
 /* ============================== HELPER ==================================== */
-
 
 function sayText () {
     var voice = "BRITISHDANIEL";
