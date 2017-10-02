@@ -28,7 +28,7 @@ const totalHeight = 800;                    // height of the view
 let EM;
 
 // init state
-let prevOutput = "Do you like Radiohead?";
+let prevOutput = "Nice to meet you";
 let prevCs = "";
 
 // youtube player
@@ -1575,7 +1575,7 @@ function getResponse () {
         addSvg(parseInt(Math.random()*11) + 1);
     }
 
-    var url = "http://www.cleverbot.com/getreply?key=" + APIKEY + "&input=" + 
+    var url = "http://www.cleverbot.com/getreply?key=" + CLEVERBOT_API_KEY + "&input=" + 
                 encodeURIComponent(prevOutput) + "&cs=" + prevCs + "&cb_settings_emotion=yes";
     
     // call cleverbot API
