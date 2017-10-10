@@ -1,24 +1,25 @@
 /* ========================================================================== */
 /* ============================ OPTIONS ===================================== */
 
-const USE_OVERLAY           = 0;    // "eye" circle
-const USE_RANDOM_MOVEMENTS  = 0;    // searching around
-const USE_VOICE             = 1;    // audio
-const USE_IMAGES            = 1;    // call image API
-const USE_VIDEOS            = 1;    // call youtube API
-const USE_SOUND_EFFECTS     = 0;    // call freesound API
-const USE_IMAGE_EFFECT      = 0;    // pixelation effect
-const USE_EDGES             = 0;    // lines connecting the spinners
-const USE_LINE_DRAWING      = 0;    // svg line drawing effect
-const USE_TEXT              = 0;    // text output overlay
-const USE_CHAPTERS          = 0;    // shows one "chapter" at a time if true
-const USE_GRAVITY           = 1;    // use gravity in the particle simulation
+const USE_OVERLAY           = 1,    // "eye" circle
+      USE_RANDOM_MOVEMENTS  = 1,    // searching around
+      USE_VOICE             = 1,    // audio
+      USE_IMAGES            = 1,    // call image API
+      USE_VIDEOS            = 1,    // call youtube API
+      USE_SOUND_EFFECTS     = 0,    // call freesound API
+      USE_IMAGE_EFFECT      = 0,    // pixelation effect
+      USE_EDGES             = 0,    // lines connecting the spinners
+      USE_LINE_DRAWING      = 0,    // svg line drawing effect
+      USE_TEXT              = 0,    // text output overlay
+      USE_CHAPTERS          = 1,    // shows one "chapter" at a time if true
+      USE_GRAVITY           = 1;    // use gravity in the particle simulation
+      INFINITE_REPEAT       = 0;    // run indefinitely 
 
-const EYE_RADIUS            = 320;  // radius of roving eye
-const EYE_SIZE_CHANGE_MOD   = 5;    // how often the eye changes size
+const EYE_RADIUS            = 320,  // radius of roving eye
+      EYE_SIZE_CHANGE_MOD   = 5;    // how often the eye changes size
 
-const totalWidth = $(".dynamic-modules").width(); // width of the view
-const totalHeight = 800;                    // height of the view
+const totalWidth = getViewport()[0],       // width of the view
+      totalHeight = getViewport()[1];      // height of the view
 
 
 /* ========================================================================== */
@@ -31,9 +32,6 @@ let EM;
 let prevOutput = "Nice to meet you";
 let prevCs = "";
 
-// youtube player
-let ytPlayer;                               
-
 // the modules
 let particlesModule,
     historyModule,
@@ -42,16 +40,15 @@ let particlesModule,
     constellationModule,
     shapeDrawingModule,
     imageFlickerModule,
-    overlayModule;
+    overlayModule,
+    videoPlayerModule;
+
+// audio player
+let audio = new Audio();
+
 
 // modules that will show and hide
-let dynamicModulesList = [
-        () => $("#ytplayer"), 
-        () => $("#gradient-group"),
-        () => $("#emotion-history-grid"),
-        () => $("#particles"),
-        () => $("#canvas-sketch")
-    ];
+let dynamicModulesList;
 
 /* ========================================================================== */
 /* ======================= CLASS DEFINITIONS ================================ */
@@ -300,7 +297,7 @@ class EmotionManager {
 */
 class Gradient {
     constructor () {
-        this.gradientTopSvg = d3.select("#emotion-gradient svg");
+        this.gradientTopSvg = d3.select("#emotion-gradient-top svg");
         this.gradientBottomSvg =  d3.select("#emotion-gradient-bottom svg");
 
         this.gradientTop;
@@ -311,6 +308,13 @@ class Gradient {
         this.prevPrevCol = "#000";
     }
 
+    disable () {
+        $("#gradient-group").hide();
+    }
+
+    enable () {
+        $("#gradient-group").show();
+    }
     /* Adds a color to the gradient, animates from left to right */
     addColor (newCol) {
         var colorsList = historyModule.colorsList;        
@@ -321,8 +325,8 @@ class Gradient {
                 historyModule.addColor(newCol);
             })
 
-        d3.select("#emotion-gradient").style("width", "0%");
-        d3.select("#emotion-gradient").transition(gradientTransition).style("width", "100%");
+        d3.select("#emotion-gradient-top").style("width", "0%");
+        d3.select("#emotion-gradient-top").transition(gradientTransition).style("width", "100%");
         
         if (this.gradientTop) {this.gradientTop.remove();}
         if (this.gradientBottom) {this.gradientBottom.remove();}
@@ -377,6 +381,16 @@ class History {
         this.colorsList = [];
         this.blockAddDuration = 800;
         this.blockDumpDuration = 800;
+    }
+    
+    disable () {
+        $("#emotion-history-grid").hide();
+        this.blockAddDuration = 0;
+    }
+
+    enable () {
+        $("#emotion-history-grid").show();
+        this.blockAddDuration = 800;
     }
 
     /* Adds a color block to the conversation history module */
@@ -449,6 +463,15 @@ class Particles {
             platform = platform.enter().append("circle").attr("fill", (d) => d.fill).merge(platform);
         }
 
+        this.disable = () => {
+            $("#particles").hide();
+            simulation.stop();
+        }
+
+        this.enable = () => {
+            $("#particles").show();
+            simulation.restart();
+        }
         /* restarts the simulation */
         this.restart = () => {
             // Apply the general update pattern to the nodes.
@@ -515,19 +538,21 @@ class Particles {
         }
 
         this.dumpColors = (rectList) => {
-            for (let i = 1; i < rectList.length; i++) {
-                const rect = rectList[i],
-                      bbox = rect.node().getBoundingClientRect(),
-                      combinedRadius = nodeRadius + nodeBuffer,
-                      numNodesPerColor = Math.floor(bbox.width / (2 * combinedRadius));
-                //console.log(rect)
-                setIntervalX( () => {
-                    for (let i = 0; i < numNodesPerColor; i++) {
-                        const x = bbox.left + i * 2 * (combinedRadius);
-                        //const y = height/-2 + combinedRadius;
-                        const y = 2*combinedRadius;
+            console.log("RECTLIST", rectList)
+            const rectWidth = totalWidth / rectList.length;
+            const combinedRadius = nodeRadius + nodeBuffer;
+            const numNodesPerColor = Math.floor(rectWidth / (2 * combinedRadius));
+            
+            for (let i = 0; i < rectList.length; i++) {
 
-                        //console.log("-----", i,x,y);
+                const rect = rectList[i];
+             
+                setIntervalX((elapsed) => {
+                    console.log(elapsed);
+                    for (let j = 0; j < numNodesPerColor; j++) {
+                        const x = rectWidth * (i - 1) + j * 2 * (combinedRadius);
+                        const y = 2 * combinedRadius;
+
                         this.addNode(rect.attr("fill"), x, y)
                     }
                 }, 100, 2);
@@ -705,14 +730,15 @@ class Particles {
                         this.generatePlatform(width, 40, width - 200, 100)).concat(
                         this.generatePlatform(midX - 50, midY, midX + 50, midY));*/
 
-            platforms = this.generateRect(30, 30, 50, 50).concat(
+            platforms = /*this.generateRect(30, 30, 50, 50).concat(
                         this.generateRect(230, 30, 50, 50).concat(
                         this.generateRect(430, 30, 50, 50).concat(
                         this.generateRect(630, 30, 50, 50).concat(
                         this.generateRect(830, 30, 50, 50).concat(
-                        this.generateRect(1030, 30, 50, 50).concat(
-                        this.generateRect(totalWidth-80, 30, 50, 50).concat(
-                        this.generateRect(midX-25, midY-25, 50, 50))))))));
+                        this.generateRect(1030, 30, 50, 50).concat(*/
+                        //this.generateRect(totalWidth-80, 30, 50, 50).concat(
+                        this.generateRect(midX-25, midY-25, 50, 50)
+                        //)))))));
 
         // combine simulation items into single array
         var getForceNodes = () => platforms.concat(floors.concat(spinnerFollowers.concat(nodes)));
@@ -720,7 +746,7 @@ class Particles {
         // simulation vars
         var aDecay = 0.1,
             vDecay = 0.05,
-            chargeStrength = 0.1,
+            chargeStrength = 1,
             gravityStrength = 0.03,
             collideStrength = 1.3,
             collideIterations = 3;
@@ -874,6 +900,14 @@ class ImageDisplay {
         if (USE_IMAGE_EFFECT) {
             d3.timer(this.step);
         }
+    }
+
+    disable () {
+        ("#image-module").hide();
+    }
+
+    enable () {
+        ("#image-module").show();
     }
 
     addImage (url, isRight) {
@@ -1044,6 +1078,9 @@ class ImageFlicker {
                 this.tagsLeft = tags.split(',');
                 this.imageLeft = image;
             }
+            if (this.images.length >= 20) {
+                this.images.length = 0;
+            }
             this.images.push(image);
         });     
     }
@@ -1055,14 +1092,92 @@ class ImageFlicker {
       imgObj.setAttribute('crossOrigin', '');
     }
 
+    disable () {
+        $("#canvas-sketch").hide()
+        //this.timer.stop();
+        //this.isActive = !this.isActive;
+    }
+
+    enable() {
+        $("#canvas-sketch").show()
+        /*if (this.isActive) {
+            this.timer.restart(this.step);
+        }*/
+        //this.isActive = !this.isActive;
+    }
+
     toggleActive () {
         if (this.isActive) {
             this.timer.stop();
+            this.disable();
         } else {
-            this.timer = d3.timer(this.step);
+            this.timer.restart(this.step);
+            this.enable();
         }
         this.isActive = !this.isActive;
     }
+}
+
+/* ========================= VIDEO PLAYER CLASS=================================
+    Responsible for the Youtube player module. Includes methods to load videos,
+    adjust volume.
+*/
+class VideoPlayer {
+    constructor () {
+        this.isReady = false;
+        this.player;
+    }
+
+    enable () {
+        //this.player.play();
+        $("#ytplayer").show();
+    }
+
+    disable () {
+        //this.player.stop();
+        $("#ytplayer").hide();
+    }
+}
+
+/* initialize the youtube player iframe */
+function onYouTubeIframeAPIReady() {
+    console.log("ON YT READY");
+    videoPlayerModule = new VideoPlayer();
+    
+    videoPlayerModule.player = new YT.Player('ytplayer', {
+        videoId: '0', // YouTube Video ID
+        width: totalWidth,               // Player width (in px)
+        height: totalHeight,             // Player height (in px)
+        playerVars: {
+            autoplay: 1,        // Auto-play the video on load
+            controls: 0,        // Show pause/play buttons in player
+            showinfo: 0,        // Hide the video title
+            modestbranding: 1,  // Hide the Youtube Logo
+            enablejsapi: 1,
+            rel: 0,
+            loop: 0,            // Run the video in a loop
+            fs: 0,              // Hide the full screen button
+            cc_load_policy: 0,  // Hide closed captions
+            iv_load_policy: 3,  // Hide the Video Annotations
+            autohide: 1         // Hide video controls when playing
+        },
+        events: {
+            onReady: (e) => {
+                e.target.mute();
+                videoPlayerModule.isReady = true;
+                dynamicModulesList.push(videoPlayerModule);
+            },
+            onStateChange: (e) => {
+                console.log(e);
+                if (e.data === 1) {
+                    $("#ytplayer").animate({"opacity": 1}, 500);
+                } else {
+                    $("#ytplayer").animate({"opacity": 0}, 500);
+                }
+                //$("#ytplayer").css("opacity", 1);
+            }
+        }
+    });
 }
 
 /* ======================== CONSTELLATION CLASS ================================
@@ -1453,6 +1568,8 @@ class Overlay {
 
 /* execute on page load */
 $(document).on("ready", function () {  
+    $(".module-section").css({"width": totalWidth, "height": totalHeight});
+    $(".module").css({"width": totalWidth, "height": totalHeight});
 
     // add svg canvas to all modules
     d3.selectAll(".svg-module").append("svg")
@@ -1471,13 +1588,23 @@ $(document).on("ready", function () {
     shapeDrawingModule = new ShapeDrawing();
     overlayModule = new Overlay();
 
+    dynamicModulesList = [
+            gradientModule,
+            historyModule,
+            particlesModule,
+            imageFlickerModule
+        ];
+
+    // start with one response
+    getResponse();
+
     if (USE_CHAPTERS) {
         $(".dynamic-modules .module-section").hide();
     }
 
-    // start with one response
-    getResponse();
-    overlayModule.blink();
+    if (USE_OVERLAY) {
+        overlayModule.blink();
+    }
 
     // Start random eye movements
     if (USE_RANDOM_MOVEMENTS) {
@@ -1485,32 +1612,6 @@ $(document).on("ready", function () {
         //loop(5000, 2000, () => overlayModule.moveModulesToRandomLocation());      
     }
 })
-
-/* initialize the youtube player iframe */
-function onYouTubeIframeAPIReady() {
-    ytPlayer = new YT.Player('ytplayer', {
-        videoId: '0', // YouTube Video ID
-        width: totalWidth,               // Player width (in px)
-        height: totalHeight,              // Player height (in px)
-        playerVars: {
-            autoplay: 1,        // Auto-play the video on load
-            controls: 0,        // Show pause/play buttons in player
-            showinfo: 0,        // Hide the video title
-            modestbranding: 1,  // Hide the Youtube Logo
-            rel: 0,
-            loop: 0,            // Run the video in a loop
-            fs: 0,              // Hide the full screen button
-            cc_load_policy: 0,  // Hide closed captions
-            iv_load_policy: 3,  // Hide the Video Annotations
-            autohide: 1         // Hide video controls when playing
-        },
-        events: {
-            onReady: function(e) {
-                e.target.mute();
-            }
-        }
-    });
-}
 
 /* ========================================================================== */
 /* ============================= HANDLERS =================================== */
@@ -1542,6 +1643,16 @@ $(window).keypress(function(e) {
     }
     if (e.which === 102) {  // f
         clearParticles();
+    } 
+    if (e.which === 103) {
+        blurText(0, 10);
+        blurText(1, 100);
+    }
+    if (e.which === 112) {
+        playSong("love");
+    }
+    if (e.which === 111) {
+        playSong("anger");
     }
 });
 
@@ -1556,11 +1667,21 @@ function clearParticles () {
 }
 
 function switchChapter (i) {
+    console.log("SWITCHING TO ", i);
     if (USE_CHAPTERS) {
-        console.log("SWITCHING TO ", i);
-        $(".dynamic-modules .module-section").hide();
-        dynamicModulesList[i]().show();
+        dynamicModulesList.forEach((module, index) => {
+            if (index != i) {
+                module.disable();
+            } else {
+                module.enable();
+            }
+        })
     }
+}
+
+function playSong (name) {
+    audio.src = 'audio/'+name+'.mp3';
+    audio.play();
 }
 /* ========================================================================== */
 /* =========================== GET RESPONSE ================================= */
@@ -1605,7 +1726,8 @@ function getResponse () {
         if (USE_TEXT) {
             typeWriter(".text-output-"+botIndex, data.output, 0)
         }
-
+        blurText(0, Math.random() * 100);
+        blurText(1, Math.random() * 100);
         // spinner speed and radius
         const newSpinnerSpeed = convertRange(data.emotion_degree, [0, 80], [1, 70]);
         const newSpinnerRadius = convertRange(data.reaction_degree, [0, 80], [1, 200]);
@@ -1630,7 +1752,16 @@ function getResponse () {
 
         // speak
         if (USE_VOICE) {
-            responsiveVoice.speak(data.output, "UK English Male"/*, {rate: Math.random()*2, pitch: Math.random()*1.9+0.1, volume: 1}*/);
+            responsiveVoice.speak(data.output, "UK English Male", {
+                //rate: Math.random()*1.3, 
+                //pitch: Math.random()*1.9+0.1, 
+                volume: 1,
+                onend: () => {
+                    if (INFINITE_REPEAT) {
+                        getResponse();
+                    }
+                }
+            });
             //sayText();
         }
 
@@ -1652,23 +1783,37 @@ function getResponse () {
         }
 
         // call youtube API
-        if (USE_VIDEOS) {
-          const videoUrl = "https://www.googleapis.com/youtube/v3/search?key="+YOUTUBE_API_KEY+"&part=snippet&q="+encodeURIComponent(data.output);
-          $.getJSON(videoUrl, function(data){
-              const id = data.items[0].id.videoId;
-              if (ytPlayer) {
-                ytPlayer.loadVideoById(id);
-              }
+        if (USE_VIDEOS && data.interaction_count > 1) {
+            
+            const videoUrl = "https://www.googleapis.com/youtube/v3/search?key="+YOUTUBE_API_KEY+"&part=snippet&q="+encodeURIComponent(data.output);
+            $.getJSON(videoUrl, function(data){
+                console.log(videoPlayerModule);
+                const id = data.items[0].id.videoId;
+              
+                if (videoPlayerModule.isReady) {
+                    videoPlayerModule.player.loadVideoById(id);
+                }
           });
         }
 
         prevOutput = data.output;
         prevCs = data.cs;
+
+
     });
 }
 
 /* ========================================================================== */
 /* ============================== HELPER ==================================== */
+
+function blurText (i, amount) {
+    $(".text-output-"+i).css({
+        //"font-size": Math.random() * 200 + 30,
+        "color": "transparent",
+        "text-shadow": "0 0 "+amount+"px rgba(255,255,255,0.5)"
+    })
+}
+
 
 function sayText () {
     var voice = "BRITISHDANIEL";
@@ -1724,7 +1869,17 @@ function hexToRgb(hex) {
 }
 
 function setIntervalX(callback, delay, repetitions) {
-    var x = 0;
+    let count = 0;
+    let t = d3.interval(() => {
+        if (count >= repetitions) {
+            t.stop();
+        } else {
+            callback();
+        }
+        count++;
+    }, delay)
+
+    /*var x = 0;
     var intervalID = window.setInterval(function () {
 
        callback();
@@ -1732,7 +1887,7 @@ function setIntervalX(callback, delay, repetitions) {
        if (++x === repetitions) {
            window.clearInterval(intervalID);
        }
-    }, delay);
+    }, delay);*/
 }
 
 function loop (maxTime, minTime, callback) {

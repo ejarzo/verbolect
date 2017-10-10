@@ -4,8 +4,12 @@ html {
   line-height: 1.4;
   font-family: "Inconsolata", monospace;
   background: #000;
+  margin: 0;
+  padding: 0;
   height: 100%;
   width: 100%; }
+  html::-webkit-scrollbar {
+    width: 0 !important; }
 
 #controls {
   position: fixed;
@@ -32,29 +36,25 @@ html {
   -webkit-transition: all 0.03s;
   z-index: 1000; }
 
-.module {
-  height: 800px; }
-
 .module-group {
-  display: inline-block;
-  width: 1280px;
   left: 0;
   right: 0; }
 
 .static-modules {
   position: absolute;
+  top: 0;
+  left: 0;
   z-index: 1000; }
   .static-modules .module {
-    height: 800px;
-    margin: 30px 0; }
-  .static-modules #svg-drawing {
-    position: fixed;
-    height: 100vh;
-    width: 100vw;
+    position: absolute;
     left: 0;
     top: 0;
-    z-index: 100;
-    transform: scale(2); }
+    bottom: 0;
+    right: 0; }
+  .static-modules #shape-drawing {
+    left: 0; }
+  .static-modules #svg-drawing {
+    left: 200%; }
     .static-modules #svg-drawing svg {
       height: 100%;
       width: 100%; }
@@ -70,65 +70,51 @@ html {
       animation: dash 30s ease-in-out; }
 
 .text-output {
-  position: fixed;
+  position: absolute;
   bottom: 0;
   left: 0;
-  color: #FFF;
+  top: 0;
+  color: rgba(255, 255, 255, 0.6);
   margin: 0;
-  height: 100vh;
-  width: 100vw;
-  font-size: 130px; }
-  .text-output .text-cont {
-    display: table-row;
-    vertical-align: bottom;
-    height: 1px; }
+  font-size: 20rem;
+  mix-blend-mode: overlay;
+  display: block !important;
+  z-index: 5000; }
   .text-output .text-output-0 {
+    transition: all 2s ease;
     position: absolute;
     left: 0;
-    bottom: 20px;
-    padding: 20px;
-    opacity: 0.5; }
+    top: 0;
+    mix-blend-mode: overlay; }
   .text-output .text-output-1 {
+    transition: all 2s ease;
     position: absolute;
     right: 0;
-    bottom: 20px;
-    padding: 20px;
+    top: 0;
     float: right;
     text-align: right;
-    opacity: 0.5; }
+    padding-top: 90px;
+    mix-blend-mode: overlay; }
 
 .dynamic-modules {
   transition: 0.5s;
   -webkit-transition: all 0.5s;
   -webkit-transform: scale3d(1, 1, 1); }
   .dynamic-modules .module-section {
-    width: 1280px;
-    min-height: 800px;
-    margin: 30px 0; }
-  .dynamic-modules #gradient-group {
-    height: 800px; }
-  .dynamic-modules #emotion-history-grid {
-    height: total-height; }
-    .dynamic-modules #emotion-history-grid svg {
-      height: 800px; }
-  .dynamic-modules #emotion-gradient {
+    position: absolute;
+    top: 0;
+    left: 0; }
+  .dynamic-modules #gradient-group .module {
+    height: 100%; }
+  .dynamic-modules #gradient-group #emotion-gradient-bottom {
+    margin-bottom: -100vh; }
+  .dynamic-modules #emotion-gradient-top {
     overflow: hidden;
     position: relative;
     top: 0; }
-    .dynamic-modules #emotion-gradient svg {
-      width: 1280px; }
-  .dynamic-modules #emotion-gradient-bottom {
-    margin-bottom: -800px; }
-  .dynamic-modules #particles {
-    height: 800px;
-    background: #000; }
-  .dynamic-modules #video-module {
-    height: 800px; }
-  .dynamic-modules #image-module {
-    height: 800px; }
-  .dynamic-modules #canvas-sketch {
-    background: #ddd;
-    height: 800px; }
+  .dynamic-modules #ytplayer {
+    z-index: 1000;
+    opacity: 0; }
 
 /*  ====================================================  */
 .clearfix::after {
