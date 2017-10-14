@@ -33,7 +33,7 @@ html {
 /*  ====================================================  */
 #overlay {
   position: fixed;
-  -webkit-transition: all 0.03s;
+  -webkit-transition: all 1s;
   z-index: 1000; }
 
 .module-group {
@@ -113,8 +113,10 @@ html {
     position: relative;
     top: 0; }
   .dynamic-modules #ytplayer {
+    -webkit-transition: all 1s;
     z-index: 1000;
-    opacity: 0; }
+    opacity: 0;
+    transform: scale(1.2); }
 
 /*  ====================================================  */
 .clearfix::after {

@@ -1,7 +1,7 @@
 /* ========================================================================== */
 /* ============================ OPTIONS ===================================== */
 
-const USE_OVERLAY           = 1,    // "eye" circle
+const USE_OVERLAY           = 0,    // "eye" circle
       USE_RANDOM_MOVEMENTS  = 1,    // searching around
       USE_VOICE             = 1,    // audio
       USE_IMAGES            = 1,    // call image API
@@ -12,8 +12,8 @@ const USE_OVERLAY           = 1,    // "eye" circle
       USE_LINE_DRAWING      = 0,    // svg line drawing effect
       USE_TEXT              = 0,    // text output overlay
       USE_CHAPTERS          = 1,    // shows one "chapter" at a time if true
-      USE_GRAVITY           = 1;    // use gravity in the particle simulation
-      INFINITE_REPEAT       = 0;    // run indefinitely 
+      USE_GRAVITY           = 0;    // use gravity in the particle simulation
+      INFINITE_REPEAT       = 1;    // run indefinitely 
 
 const EYE_RADIUS            = 320,  // radius of roving eye
       EYE_SIZE_CHANGE_MOD   = 5;    // how often the eye changes size
@@ -41,6 +41,7 @@ let particlesModule,
     shapeDrawingModule,
     imageFlickerModule,
     overlayModule,
+    natureImagesModule,
     videoPlayerModule;
 
 // audio player
@@ -537,6 +538,14 @@ class Particles {
             }
         }
 
+        this.radiusGravity = (d, i) => {
+            if (d.type == "node") {
+                return 2;
+            } else {
+                return 10;
+            }
+        }
+
         this.dumpColors = (rectList) => {
             console.log("RECTLIST", rectList)
             const rectWidth = totalWidth / rectList.length;
@@ -643,6 +652,14 @@ class Particles {
             }
         }
 
+        this.setNodeChargeStrength = (val) => {
+            chargeStrength = val;
+        }
+
+        this.setSpinnerChargeStrength = (val) => {
+            spinnerChargeStrength = val;
+        }
+
         this.animateSpinners = () => {
             if (mode === 0) {
                 d3.timer(function() {
@@ -737,8 +754,9 @@ class Particles {
                         this.generateRect(830, 30, 50, 50).concat(
                         this.generateRect(1030, 30, 50, 50).concat(*/
                         //this.generateRect(totalWidth-80, 30, 50, 50).concat(
-                        this.generateRect(midX-25, midY-25, 50, 50)
+                        //this.generateRect(midX-25, midY-25, 50, 50)
                         //)))))));
+                        [];
 
         // combine simulation items into single array
         var getForceNodes = () => platforms.concat(floors.concat(spinnerFollowers.concat(nodes)));
@@ -746,7 +764,8 @@ class Particles {
         // simulation vars
         var aDecay = 0.1,
             vDecay = 0.05,
-            chargeStrength = 1,
+            chargeStrength = 0,
+            spinnerChargeStrength = 20,
             gravityStrength = 0.03,
             collideStrength = 1.3,
             collideIterations = 3;
@@ -755,7 +774,7 @@ class Particles {
         var simulation = d3.forceSimulation(getForceNodes())
             .alphaDecay(aDecay)
             .velocityDecay(vDecay)
-            .force("charge", d3.forceManyBody().strength(chargeStrength))
+            .force("charge", d3.forceManyBody().strength((d,i) => d.type == "node" ? chargeStrength : spinnerChargeStrength))
             .force("gravity", this.gravity(gravityStrength))
             .force("setSpinnerPos", this.setSpinnerPos)
             //.force("collide", rectangleCollide)
@@ -1168,13 +1187,11 @@ function onYouTubeIframeAPIReady() {
                 dynamicModulesList.push(videoPlayerModule);
             },
             onStateChange: (e) => {
-                console.log(e);
                 if (e.data === 1) {
-                    $("#ytplayer").animate({"opacity": 1}, 500);
+                    $("#ytplayer").css({"opacity": 1});
                 } else {
-                    $("#ytplayer").animate({"opacity": 0}, 500);
+                    $("#ytplayer").css({"opacity": 0});
                 }
-                //$("#ytplayer").css("opacity", 1);
             }
         }
     });
@@ -1318,8 +1335,8 @@ class ShapeDrawing {
 
     addPoint (ed, rd, color, text) {
         this.percentage = 0;
-        const x = convertRange(ed, [0, 100], [0, this.width]);
-        const y = convertRange(rd, [0, 100], [0, this.height]);
+        const x = convertRange(ed, [0, 80], [0, this.width]);
+        const y = convertRange(rd, [0, 80], [0, this.height]);
         
         //var shapeDataIndex = this.count % 2;
 
@@ -1362,8 +1379,8 @@ class ShapeDrawing {
         var col = blendColors(rgb1.r, rgb1.g, rgb1.b, rgb2.r, rgb2.g, rgb2.b, this.percentage)
         col = rgbToHex(col);
         
-        data.currX += xDiff / 100;
-        data.currY += yDiff / 100;
+        data.currX += xDiff / 100 /*+ Math.random() * 4 - 2*/;
+        data.currY += yDiff / 100 /*+ Math.random() * 4 - 2*/;
 
         var minCount = data.widthMod ? 3 : 2;
 
@@ -1371,6 +1388,29 @@ class ShapeDrawing {
             this.context.fillStyle = col;
             this.context.fillRect(data.currX, data.currY, 3, 3);
         }
+    }
+}
+
+/* ======================== NATURE IMAGE CLASS =================================
+    
+    Responsible for the selection of nature images
+*/
+class NatureImages {
+    constructor(){
+        this.elem = $("#nature-image-module");
+    } 
+    
+    enable () {
+        this.elem.show();
+    }
+
+    disable () {
+        this.elem.hide();
+    }
+
+    changeImage () {
+        const index = parseInt(Math.random()*12);
+        this.elem.css("background", "url(img/nature_images/"+index+".jpg)");
     }
 }
 
@@ -1510,7 +1550,8 @@ class Overlay {
         var xBuffer = -0.5*overlay.width;
         var yBuffer = -0.5*overlay.height;
         const animateTime = 300;
-        $("#overlay").animate({"left": x + xBuffer, "top" : y + yBuffer}, animateTime);
+        //$("#overlay").animate({"left": x + xBuffer, "top" : y + yBuffer}, animateTime);
+        $("#overlay").css({"left": x + xBuffer, "top" : y + yBuffer});
     }
     
     /* animate the whole canvas under the eye to x, y coordinates */
@@ -1587,13 +1628,17 @@ $(document).on("ready", function () {
     constellationModule = new Constellation();
     shapeDrawingModule = new ShapeDrawing();
     overlayModule = new Overlay();
+    natureImagesModule = new NatureImages();
 
     dynamicModulesList = [
             gradientModule,
             historyModule,
             particlesModule,
-            imageFlickerModule
+            imageFlickerModule,
+            natureImagesModule
         ];
+
+
 
     // start with one response
     getResponse();
@@ -1611,6 +1656,7 @@ $(document).on("ready", function () {
         loop(5000, 2000, () => overlayModule.moveEyeToRandomLocation());      
         //loop(5000, 2000, () => overlayModule.moveModulesToRandomLocation());      
     }
+
 })
 
 /* ========================================================================== */
@@ -1639,7 +1685,8 @@ $(window).keypress(function(e) {
         overlayModule.setEyeRadius(800);
     }
     if (e.which === 100) { // d
-        dump();
+        //dump();
+        generateNRandomNodes(200)
     }
     if (e.which === 102) {  // f
         clearParticles();
@@ -1653,6 +1700,9 @@ $(window).keypress(function(e) {
     }
     if (e.which === 111) {
         playSong("anger");
+    }
+    if (e.which === 113) { // q
+        INFINITE_REPEAT = !INFINITE_REPEAT;
     }
 });
 
@@ -1690,7 +1740,7 @@ function playSong (name) {
   returns a JSON response from the cleverbot API using the prevOutpt as the input
 */
 function getResponse () {
-
+    switchChapter(2);
     $(".loading-spinner").show();
     if (USE_LINE_DRAWING) {
         addSvg(parseInt(Math.random()*11) + 1);
@@ -1701,8 +1751,10 @@ function getResponse () {
     
     // call cleverbot API
     $.getJSON(url, function(data) {        
+        $(".loading-spinner").hide();
+
         if (true) {
-            //console.log(data);
+            console.log(data);
             //console.log("INTERACTION COUNT: ", data.interaction_count)
             console.log("OUTPUT: ", data.output);
             console.log("EMOTION: ", data.emotion);
@@ -1711,7 +1763,21 @@ function getResponse () {
             console.log("Reaction Degree: ", data.reaction_degree);
         }
 
-        $(".loading-spinner").hide();
+        const emotionData = {
+            name: data.emotion,
+            degree: data.emotion_degree,
+            tone: data.emotion_tone,
+            values: data.emotion_values.split(",")
+        }
+
+        const reactionData = {
+            name: data.reaction,
+            degree: data.reaction_degree,
+            tone: data.reaction_tone,
+            values: data.reaction_values.split(",")
+        }
+
+        console.log("EMOTION: ", emotionData, "REACTION: ", reactionData);
         var emotionCategory = EM.getEmotionCategory(data.emotion);
         
         // left or right
@@ -1740,10 +1806,32 @@ function getResponse () {
             overlayModule.setEyeRadius(Math.random() * totalHeight + 10);
         }
 
+        natureImagesModule.changeImage();
+
         // get color
         var newCol = rgbToHex(EM.getColorForEmotion(data.emotion));
         constellationModule.addPoint(data.emotion_degree, data.reaction_degree, newCol)
         shapeDrawingModule.addPoint(data.emotion_degree, data.reaction_degree, newCol, data.output)
+
+
+        particlesModule.addNode(newCol, totalWidth/2, 0);
+        console.log("=================== EMOTION CATEGORY: ", emotionCategory);
+        if (emotionCategory == "love") {
+            particlesModule.setNodeChargeStrength(3);
+        } else if (emotionCategory == "anger") {
+            particlesModule.setNodeChargeStrength(-3);
+        } else if (emotionCategory == "laughing") {
+            particlesModule.setNodeChargeStrength(-50);
+            setTimeout(() => {
+                //particlesModule.setSpinnnerChargeStrength(200);
+                particlesModule.setNodeChargeStrength(50);
+            }, 1000)
+
+        } 
+        else {
+            particlesModule.setNodeChargeStrength(0);
+        }
+
 
         // gradient
         if (data.interaction_count > 0) {
@@ -1840,7 +1928,7 @@ function sayText () {
 function generateNRandomNodes (n) {
     var i = 0;
     while (i++ < n) {
-        particlesModule.addNode(EM.getColorForEmotionIndex(Math.floor(Math.random() * 7)), 0, 0);
+        particlesModule.addNode(EM.getColorForEmotionIndex(Math.floor(Math.random() * 7)), totalWidth/2, i);
         //particlesModule.addNode("#00f", 0, 0);
     }
 }
