@@ -9,18 +9,20 @@ const USE_OVERLAY           = 0,    // "eye" circle
       USE_SOUND_EFFECTS     = 0,    // call freesound API
       USE_IMAGE_EFFECT      = 0,    // pixelation effect
       USE_EDGES             = 0,    // lines connecting the spinners
-      USE_LINE_DRAWING      = 0,    // svg line drawing effect
+      USE_LINE_DRAWING      = 1,    // svg line drawing effect
       USE_TEXT              = 0,    // text output overlay
       USE_CHAPTERS          = 1,    // shows one "chapter" at a time if true
       USE_GRAVITY           = 0;    // use gravity in the particle simulation
-      INFINITE_REPEAT       = 1;    // run indefinitely 
+      INFINITE_REPEAT       = 0;    // run indefinitely 
 
 const EYE_RADIUS            = 320,  // radius of roving eye
       EYE_SIZE_CHANGE_MOD   = 5;    // how often the eye changes size
+      CHAPTER_SWITCH_MOD    = 4;    // how often the chapters change
 
 const totalWidth = getViewport()[0],       // width of the view
       totalHeight = getViewport()[1];      // height of the view
 
+let currChpaterIndex = 0;
 
 /* ========================================================================== */
 /* =========================== Variables ==================================== */
@@ -29,7 +31,7 @@ const totalWidth = getViewport()[0],       // width of the view
 let EM;
 
 // init state
-let prevOutput = "Nice to meet you";
+let prevOutput = "Tell me a joke";
 let prevCs = "";
 
 // the modules
@@ -42,10 +44,12 @@ let particlesModule,
     imageFlickerModule,
     overlayModule,
     natureImagesModule,
+    faceImagesModule,
     videoPlayerModule;
 
 // audio player
 let audio = new Audio();
+audio.src = 'audio/tin_tap.wav';
 
 
 // modules that will show and hide
@@ -289,6 +293,25 @@ class EmotionManager {
             b: b
         }
     }
+
+    getVoiceParamsForEmotionCategory (input) {
+        if (input == "anger") 
+            return {rate: 1.2, pitch: 0.5, volume: 1.1}; 
+        else if (input == "sad") 
+            return {rate: 0.6, pitch: 1.3, volume: 0.9}; 
+        else if (input == "love") 
+            return {rate: 0.5, pitch: 0.8, volume: 1}; 
+        else if (input == "disgust") 
+            return {rate: 0.7, pitch: 1.2, volume: 1}; 
+        else if (input == "like") 
+            return {rate: 1, pitch: 0.7, volume: 1}; 
+        else if (input == "laughing") 
+            return {rate: 1.3, pitch: 1.2, volume: 1}; 
+        else if (input == "surprise") 
+            return {rate: 1.4, pitch: 1.2, volume: 1.2};
+
+        return {rate: 1, pitch: 1, volume: 1};
+    }
 }
 
 /* =========================== GRADIENT CLASS ==================================
@@ -466,12 +489,12 @@ class Particles {
 
         this.disable = () => {
             $("#particles").hide();
-            simulation.stop();
+            //simulation.stop();
         }
 
         this.enable = () => {
             $("#particles").show();
-            simulation.restart();
+            //simulation.restart();
         }
         /* restarts the simulation */
         this.restart = () => {
@@ -518,7 +541,24 @@ class Particles {
         }
 
         /* adds node to the canvas */
-        this.addNode = (color, x, y) => {
+        this.addNode = (color, x, y, emotionCategory) => {
+
+            if (emotionCategory == "love") {
+                this.setNodeChargeStrength(3);
+            } else if (emotionCategory == "anger") {
+                this.setNodeChargeStrength(-3);
+            } else if (emotionCategory == "laughing") {
+                this.setNodeChargeStrength(-50);
+                setTimeout(() => {
+                    //this.setSpinnnerChargeStrength(200);
+                    this.setNodeChargeStrength(50);
+                }, 1000)
+
+            } 
+            else {
+                this.setNodeChargeStrength(0);
+            }
+
             nodes.push({x: x, y: y, color: color, radius: nodeRadius, type: "node"});
             this.restart();
         }
@@ -1156,6 +1196,18 @@ class VideoPlayer {
         //this.player.stop();
         $("#ytplayer").hide();
     }
+
+    unmute () {
+        this.player.unMute();
+        //INFINITE_REPEAT = false;
+    }
+
+    mute () {
+        this.player.mute();
+        //INFINITE_REPEAT = true;
+        //getResponse();
+
+    }
 }
 
 /* initialize the youtube player iframe */
@@ -1396,8 +1448,10 @@ class ShapeDrawing {
     Responsible for the selection of nature images
 */
 class NatureImages {
-    constructor(){
+    constructor(folder){
         this.elem = $("#nature-image-module");
+        //this.elem.css("background", "url(img/faces.jpg)");
+
     } 
     
     enable () {
@@ -1414,6 +1468,29 @@ class NatureImages {
     }
 }
 
+/* ======================== NATURE IMAGE CLASS =================================
+    
+    Responsible for the selection of nature images
+*/
+class FaceImages {
+    constructor(folder){
+        this.elem = $("#face-image-module");
+        this.elem.css("background", "url(img/faces/face_collage.jpg)");
+        this.elem.css("background-size", "10%");
+    } 
+    
+    enable () {
+        this.elem.show();
+        //$("#svg-drawing").show();
+    }
+
+    disable () {
+        this.elem.hide();
+        //$("#svg-drawing").hide();
+
+    }
+}
+
 /* ============================ OVERLAY CLASS ==================================
     
     Responsible for the "roving eye" effect which represents examination and 
@@ -1426,13 +1503,20 @@ class Overlay {
         this.ctx = overlay.getContext('2d');
         this.radius = EYE_RADIUS;
         this.blurAmount = 40;
-
+        this.fillStyle = "#000";
         if (USE_OVERLAY) {
             this.renderOverlay();
         }
         this.currScale = 1;
     }
 
+    toggleColor() {
+        if (this.fillStyle == "#000") {
+            this.fillStyle = "#FFF";
+        } else {
+            this.fillStyle = "#000";
+        }
+    }
     /* initialize the overlay */
     renderOverlay() {
         const vp = getViewport();
@@ -1440,7 +1524,7 @@ class Overlay {
         overlay.height = 3 * vp[1];
 
         $("#overlay").css({"left": -0.33 * overlay.width, "top": -0.33 * overlay.height});
-        this.ctx.fillStyle = '#000';
+        this.ctx.fillStyle = this.fillStyle;
         
         this.ctx.fillRect(-1*overlay.width, -1*overlay.height, overlay.width*2, overlay.height*2);
         this.clipArc(this.ctx, overlay.width/2, overlay.height/2, this.radius, this.radius, 10, this.blurAmount);
@@ -1500,6 +1584,7 @@ class Overlay {
         const vp = getViewport();
         overlay.width = 3 * vp[0];
         overlay.height = 3 * vp[1];
+        this.ctx.fillStyle = this.fillStyle;
 
         this.ctx.fillRect(-1*overlay.width, -1*overlay.height, overlay.width*2, overlay.height*2);
         this.clipArc(this.ctx, overlay.width/2, overlay.height/2, this.radius, this.radius - count, 10, this.blurAmount);
@@ -1540,6 +1625,7 @@ class Overlay {
 
         var targetR = this.radius + count;
         this.blurAmount = targetR*0.1;
+        this.ctx.fillStyle = this.fillStyle;
 
         this.ctx.fillRect(-1*overlay.width, -1*overlay.height, overlay.width*2, overlay.height*2);
         this.clipArc(this.ctx, overlay.width/2, overlay.height/2, targetR, targetR, 10, this.blurAmount);
@@ -1629,13 +1715,15 @@ $(document).on("ready", function () {
     shapeDrawingModule = new ShapeDrawing();
     overlayModule = new Overlay();
     natureImagesModule = new NatureImages();
+    faceImagesModule = new FaceImages();
 
     dynamicModulesList = [
             gradientModule,
             historyModule,
             particlesModule,
             imageFlickerModule,
-            natureImagesModule
+            natureImagesModule, 
+            faceImagesModule
         ];
 
 
@@ -1654,9 +1742,20 @@ $(document).on("ready", function () {
     // Start random eye movements
     if (USE_RANDOM_MOVEMENTS) {
         loop(5000, 2000, () => overlayModule.moveEyeToRandomLocation());      
+        loop(5000, 2000, () => {
+            $("#nature-image-module").css("transform", "scale("+(Math.random()*3+1)+")")
+        });
+        loop(10000, 5000, () => {
+            $("#face-image-module").css({
+                "transform": "scale("+(Math.random() * 20)+")",
+                "background-position": Math.random()*100 + "% " + Math.random()*100 + "%"
+            })
+        });
+        /*loop(5000, 2000, () => {
+            $("#shape-drawing").css("transform", "scale("+(Math.random()*3+1)+")")
+        });*/
         //loop(5000, 2000, () => overlayModule.moveModulesToRandomLocation());      
     }
-
 })
 
 /* ========================================================================== */
@@ -1695,11 +1794,11 @@ $(window).keypress(function(e) {
         blurText(0, 10);
         blurText(1, 100);
     }
-    if (e.which === 112) {
-        playSong("love");
+    if (e.which === 112) {  // p
+        videoPlayerModule.unmute();
     }
-    if (e.which === 111) {
-        playSong("anger");
+    if (e.which === 111) {  // o
+        videoPlayerModule.mute();
     }
     if (e.which === 113) { // q
         INFINITE_REPEAT = !INFINITE_REPEAT;
@@ -1730,7 +1829,7 @@ function switchChapter (i) {
 }
 
 function playSong (name) {
-    audio.src = 'audio/'+name+'.mp3';
+    //audio.src = 'audio/'+name+'.mp3';
     audio.play();
 }
 /* ========================================================================== */
@@ -1740,28 +1839,18 @@ function playSong (name) {
   returns a JSON response from the cleverbot API using the prevOutpt as the input
 */
 function getResponse () {
-    switchChapter(2);
+
     $(".loading-spinner").show();
     if (USE_LINE_DRAWING) {
         addSvg(parseInt(Math.random()*11) + 1);
     }
 
-    var url = "http://www.cleverbot.com/getreply?key=" + CLEVERBOT_API_KEY + "&input=" + 
+    const cleverbotUrl = "http://www.cleverbot.com/getreply?key=" + CLEVERBOT_API_KEY + "&input=" + 
                 encodeURIComponent(prevOutput) + "&cs=" + prevCs + "&cb_settings_emotion=yes";
     
     // call cleverbot API
-    $.getJSON(url, function(data) {        
+    $.getJSON(cleverbotUrl, function(data) {        
         $(".loading-spinner").hide();
-
-        if (true) {
-            console.log(data);
-            //console.log("INTERACTION COUNT: ", data.interaction_count)
-            console.log("OUTPUT: ", data.output);
-            console.log("EMOTION: ", data.emotion);
-            console.log("IN CATEGORY: ", emotionCategory);
-            console.log("Emotion Degree: ", data.emotion_degree);
-            console.log("Reaction Degree: ", data.reaction_degree);
-        }
 
         const emotionData = {
             name: data.emotion,
@@ -1777,80 +1866,88 @@ function getResponse () {
             values: data.reaction_values.split(",")
         }
 
-        console.log("EMOTION: ", emotionData, "REACTION: ", reactionData);
-        var emotionCategory = EM.getEmotionCategory(data.emotion);
+        // get emotion category and corresponding color
+        const emotionCategory = EM.getEmotionCategory(data.emotion);
+        const emotionColor = rgbToHex(EM.getColorForEmotion(data.emotion));
+
+        if (true) {
+            console.log(data);
+            //console.log("INTERACTION COUNT: ", data.interaction_count)
+            console.log("OUTPUT: ", data.output);
+            console.log("EMOTION: ", data.emotion);
+            console.log("IN CATEGORY: ", emotionCategory);
+            console.log("Emotion Degree: ", data.emotion_degree);
+            console.log("Reaction Degree: ", data.reaction_degree);
+            
+            console.log("EMOTION: ", emotionData, "REACTION: ", reactionData);
+        }
         
         // left or right
-        let botIndex = 1;
+        const botIndex = data.interaction_count % 2 ? 0 : 1;
 
-        if (data.interaction_count % 2) {
-            botIndex = 0;
-            isRight = false;
+        // gradient
+        if (data.interaction_count > 0) {
+            gradientModule.addColor(emotionColor);
         }
 
-        // text output
+        // "type" text 
         if (USE_TEXT) {
             typeWriter(".text-output-"+botIndex, data.output, 0)
+            blurText(0, Math.random() * 100);
+            blurText(1, Math.random() * 100);
         }
-        blurText(0, Math.random() * 100);
-        blurText(1, Math.random() * 100);
-        // spinner speed and radius
-        const newSpinnerSpeed = convertRange(data.emotion_degree, [0, 80], [1, 70]);
-        const newSpinnerRadius = convertRange(data.reaction_degree, [0, 80], [1, 200]);
 
-        particlesModule.setSpinnerSpeed(botIndex, newSpinnerSpeed);
-        particlesModule.setSpinnerRadius(botIndex, newSpinnerRadius);
+
+        if (data.interaction_count % CHAPTER_SWITCH_MOD == 0 && USE_CHAPTERS) {
+            if (currChpaterIndex >= numDynamicModules()) {
+                currChpaterIndex = 0;
+                overlayModule.toggleColor();
+            }
+            switchChapter(currChpaterIndex);
+            currChpaterIndex++;
+        }
 
         // set eye size
         if (data.interaction_count % EYE_SIZE_CHANGE_MOD == 0 && USE_OVERLAY) {
             overlayModule.setEyeRadius(Math.random() * totalHeight + 10);
         }
 
+        // add to constellation
+        constellationModule.addPoint(emotionData.degree, reactionData.degree, emotionColor)
+
+        // add to shape drawer
+        shapeDrawingModule.addPoint(emotionData.degree, reactionData.degree, emotionColor, data.output)
+
+        // add to particles
+        particlesModule.addNode(emotionColor, totalWidth/2, 0, emotionCategory);
+
+        // nature images
         natureImagesModule.changeImage();
 
-        // get color
-        var newCol = rgbToHex(EM.getColorForEmotion(data.emotion));
-        constellationModule.addPoint(data.emotion_degree, data.reaction_degree, newCol)
-        shapeDrawingModule.addPoint(data.emotion_degree, data.reaction_degree, newCol, data.output)
+        // set spinner speed and radius
+        const newSpinnerSpeed = convertRange(emotionData.degree, [0, 80], [1, 70]);
+        const newSpinnerRadius = convertRange(reactionData.degree, [0, 80], [1, 200]);
 
+        particlesModule.setSpinnerSpeed(botIndex, newSpinnerSpeed);
+        particlesModule.setSpinnerRadius(botIndex, newSpinnerRadius);
 
-        particlesModule.addNode(newCol, totalWidth/2, 0);
-        console.log("=================== EMOTION CATEGORY: ", emotionCategory);
-        if (emotionCategory == "love") {
-            particlesModule.setNodeChargeStrength(3);
-        } else if (emotionCategory == "anger") {
-            particlesModule.setNodeChargeStrength(-3);
-        } else if (emotionCategory == "laughing") {
-            particlesModule.setNodeChargeStrength(-50);
-            setTimeout(() => {
-                //particlesModule.setSpinnnerChargeStrength(200);
-                particlesModule.setNodeChargeStrength(50);
-            }, 1000)
-
-        } 
-        else {
-            particlesModule.setNodeChargeStrength(0);
-        }
-
-
-        // gradient
-        if (data.interaction_count > 0) {
-            gradientModule.addColor(newCol);
-        }
 
         // speak
+        const voiceParams = EM.getVoiceParamsForEmotionCategory(emotionCategory)
+
         if (USE_VOICE) {
             responsiveVoice.speak(data.output, "UK English Male", {
-                //rate: Math.random()*1.3, 
-                //pitch: Math.random()*1.9+0.1, 
-                volume: 1,
+                rate: voiceParams.rate,
+                pitch: voiceParams.pitch,
+                volume: voiceParams.volume,
                 onend: () => {
                     if (INFINITE_REPEAT) {
-                        getResponse();
+                        setTimeout(function () {
+                            getResponse();
+                        }, 2000)
                     }
                 }
             });
-            //sayText();
         }
 
         // call image API
@@ -1872,28 +1969,28 @@ function getResponse () {
 
         // call youtube API
         if (USE_VIDEOS && data.interaction_count > 1) {
-            
             const videoUrl = "https://www.googleapis.com/youtube/v3/search?key="+YOUTUBE_API_KEY+"&part=snippet&q="+encodeURIComponent(data.output);
             $.getJSON(videoUrl, function(data){
                 console.log(videoPlayerModule);
                 const id = data.items[0].id.videoId;
               
-                if (videoPlayerModule.isReady) {
+                if (videoPlayerModule && videoPlayerModule.isReady) {
                     videoPlayerModule.player.loadVideoById(id);
                 }
           });
         }
 
+        // store previous reply
         prevOutput = data.output;
         prevCs = data.cs;
-
-
     });
 }
 
 /* ========================================================================== */
 /* ============================== HELPER ==================================== */
-
+function numDynamicModules () {
+    return dynamicModulesList.length;
+}
 function blurText (i, amount) {
     $(".text-output-"+i).css({
         //"font-size": Math.random() * 200 + 30,
@@ -1901,7 +1998,6 @@ function blurText (i, amount) {
         "text-shadow": "0 0 "+amount+"px rgba(255,255,255,0.5)"
     })
 }
-
 
 function sayText () {
     var voice = "BRITISHDANIEL";

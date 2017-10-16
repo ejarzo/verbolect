@@ -56,9 +56,9 @@ html
     position: absolute
     top: 0
     left: 0
-    z-index: 1000
     //overflow: hidden
     .module
+        z-index: 1000
         position: absolute
         left: 0
         top: 0
@@ -68,10 +68,12 @@ html
     
     #shape-drawing
         left: 0
+        transition: all 2s ease
+        transform: scale(1)
         //left: 100%
     
     #svg-drawing
-        left: 200%
+        //left: 200%
         svg
             height: 100%
             width: 100%
@@ -82,9 +84,9 @@ html
 
         path
             stroke: #fff
-            fill: none
             stroke-width: 3
-            stroke-dasharray: 10000
+            fill: none
+            //stroke-dashsarray: 10000
             stroke-dashoffset: 10000
             animation: dash 30s ease-in-out
 
@@ -98,7 +100,8 @@ html
     //opacity: 0.3
     font-size: 20rem
     mix-blend-mode: overlay
-    display: block !important
+    //display: block !important
+    display: none
     z-index: 5000
     .text-output-0
         transition: all 2s ease
@@ -125,7 +128,7 @@ html
     -webkit-transform: scale3d(1,1,1)
 
     .module-section
-        position: absolute
+        //position: absolute
         top: 0
         left: 0
 
@@ -149,7 +152,10 @@ html
         z-index: 1000
         opacity: 0
         transform: scale(1.2)
-   
+
+#nature-image-module, #face-image-module
+    -webkit-transition: all 1s
+    transform: scale(1)
 /*  ====================================================  */
 
 .clearfix

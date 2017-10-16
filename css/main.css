@@ -43,31 +43,30 @@ html {
 .static-modules {
   position: absolute;
   top: 0;
-  left: 0;
-  z-index: 1000; }
+  left: 0; }
   .static-modules .module {
+    z-index: 1000;
     position: absolute;
     left: 0;
     top: 0;
     bottom: 0;
     right: 0; }
   .static-modules #shape-drawing {
-    left: 0; }
-  .static-modules #svg-drawing {
-    left: 200%; }
-    .static-modules #svg-drawing svg {
-      height: 100%;
-      width: 100%; }
+    left: 0;
+    transition: all 2s ease;
+    transform: scale(1); }
+  .static-modules #svg-drawing svg {
+    height: 100%;
+    width: 100%; }
 @keyframes dash {
   50% {
     stroke-dashoffset: 0; } }
-    .static-modules #svg-drawing path {
-      stroke: #fff;
-      fill: none;
-      stroke-width: 3;
-      stroke-dasharray: 10000;
-      stroke-dashoffset: 10000;
-      animation: dash 30s ease-in-out; }
+  .static-modules #svg-drawing path {
+    stroke: #fff;
+    stroke-width: 3;
+    fill: none;
+    stroke-dashoffset: 10000;
+    animation: dash 30s ease-in-out; }
 
 .text-output {
   position: absolute;
@@ -78,7 +77,7 @@ html {
   margin: 0;
   font-size: 20rem;
   mix-blend-mode: overlay;
-  display: block !important;
+  display: none;
   z-index: 5000; }
   .text-output .text-output-0 {
     transition: all 2s ease;
@@ -101,7 +100,6 @@ html {
   -webkit-transition: all 0.5s;
   -webkit-transform: scale3d(1, 1, 1); }
   .dynamic-modules .module-section {
-    position: absolute;
     top: 0;
     left: 0; }
   .dynamic-modules #gradient-group .module {
@@ -117,6 +115,10 @@ html {
     z-index: 1000;
     opacity: 0;
     transform: scale(1.2); }
+
+#nature-image-module, #face-image-module {
+  -webkit-transition: all 1s;
+  transform: scale(1); }
 
 /*  ====================================================  */
 .clearfix::after {
