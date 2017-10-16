@@ -22,7 +22,7 @@ const EYE_RADIUS            = 320,  // radius of roving eye
 const totalWidth = getViewport()[0],       // width of the view
       totalHeight = getViewport()[1];      // height of the view
 
-let currChpaterIndex = 0;
+let currChapterIndex = chapterCount = 0;
 
 /* ========================================================================== */
 /* =========================== Variables ==================================== */
@@ -50,7 +50,6 @@ let particlesModule,
 // audio player
 let audio = new Audio();
 audio.src = 'audio/tin_tap.wav';
-
 
 // modules that will show and hide
 let dynamicModulesList;
@@ -1481,12 +1480,12 @@ class FaceImages {
     
     enable () {
         this.elem.show();
-        //$("#svg-drawing").show();
+        $("#svg-drawing").show();
     }
 
     disable () {
         this.elem.hide();
-        //$("#svg-drawing").hide();
+        $("#svg-drawing").hide();
 
     }
 }
@@ -1743,13 +1742,19 @@ $(document).on("ready", function () {
     if (USE_RANDOM_MOVEMENTS) {
         loop(5000, 2000, () => overlayModule.moveEyeToRandomLocation());      
         loop(5000, 2000, () => {
-            $("#nature-image-module").css("transform", "scale("+(Math.random()*3+1)+")")
+            if (currChapterIndex == 5) {
+                $("#nature-image-module").css("transform", "scale("+(Math.random()*3+1)+")")
+            }
         });
         loop(10000, 5000, () => {
-            $("#face-image-module").css({
-                "transform": "scale("+(Math.random() * 20)+")",
-                "background-position": Math.random()*100 + "% " + Math.random()*100 + "%"
-            })
+            if (currChapterIndex == 5) {
+                $("#face-image-module").css({
+                    "background-size": Math.random()*800 + "% ",
+                    //"transform": "scale("+(Math.random() * 20)+")",
+                    "background-position": Math.random()*100 + "% " + Math.random()*100 + "%"
+                })
+            }
+           
         });
         /*loop(5000, 2000, () => {
             $("#shape-drawing").css("transform", "scale("+(Math.random()*3+1)+")")
@@ -1816,6 +1821,7 @@ function clearParticles () {
 }
 
 function switchChapter (i) {
+    currChapterIndex = i;
     console.log("SWITCHING TO ", i);
     if (USE_CHAPTERS) {
         dynamicModulesList.forEach((module, index) => {
@@ -1899,12 +1905,12 @@ function getResponse () {
 
 
         if (data.interaction_count % CHAPTER_SWITCH_MOD == 0 && USE_CHAPTERS) {
-            if (currChpaterIndex >= numDynamicModules()) {
-                currChpaterIndex = 0;
+            if (chapterCount >= numDynamicModules()) {
+                chapterCount = 0;
                 overlayModule.toggleColor();
             }
-            switchChapter(currChpaterIndex);
-            currChpaterIndex++;
+            switchChapter(chapterCount);
+            chapterCount++;
         }
 
         // set eye size
@@ -1944,7 +1950,7 @@ function getResponse () {
                     if (INFINITE_REPEAT) {
                         setTimeout(function () {
                             getResponse();
-                        }, 2000)
+                        }, Math.random()*4000 + 1000)
                     }
                 }
             });
@@ -2171,6 +2177,16 @@ function addSvg (name) {
     xhr.open("GET","../img/svgs/"+name+".svg",false);
     xhr.send("");
     $("#svg-drawing").html(xhr.responseXML.documentElement)
+    
+    var path = document.querySelector('path');
+    if (path) {
+        var length = path.getTotalLength();
+    }
+    
+    $("#svg-drawing path").css({
+        "stroke-dasharray": length,
+        "stroke-dashoffset": length
+    })
 }
 
 function convertRange( value, r1, r2 ) { 
