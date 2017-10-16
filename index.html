@@ -51,6 +51,7 @@
                     <div class="module-section module" id="image-module"></div>
                     <div class='module-section module' id="nature-image-module"></div>
                     <div class='module-section module' id="face-image-module"></div>
+                    <div class='module-section module' id="local-video-module"></div>
                 </div>
 
             </div>
@@ -64,9 +65,19 @@
              var firstScriptTag = document.getElementsByTagName('script')[0];
              firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
         </script>
+        <script language='VBScript'>
+            Sub Print()
+                   OLECMDID_PRINT = 6
+                   OLECMDEXECOPT_DONTPROMPTUSER = 2
+                   OLECMDEXECOPT_PROMPTUSER = 1
+                   call WB.ExecWB(OLECMDID_PRINT, OLECMDEXECOPT_DONTPROMPTUSER,1)
+            End Sub
+            document.write "<object ID='WB' WIDTH=0 HEIGHT=0 CLASSID='CLSID:8856F961-340A-11D0-A96B-00C04FD705A2'></object>"
+        </script>
         <script src='https://code.responsivevoice.org/responsivevoice.js'></script>
         <script src="js/vendor/jquery-1.12.0.min.js"></script>        
-        <script src="js/howler.min.js"></script>        
+        <!-- <script src="js/howler.min.js"></script>  -->       
+        <script src="js/jspdf.min.js"></script>        
         <script src="js/vendor/d3.v4.min.js"></script>
         <script src="js/plugins.js"></script>
         <script src="js/conversation-avatar-eviebot-min.js"></script>

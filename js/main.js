@@ -1,7 +1,7 @@
 /* ========================================================================== */
 /* ============================ OPTIONS ===================================== */
 
-const USE_OVERLAY           = 0,    // "eye" circle
+const USE_OVERLAY           = 1,    // "eye" circle
       USE_RANDOM_MOVEMENTS  = 1,    // searching around
       USE_VOICE             = 1,    // audio
       USE_IMAGES            = 1,    // call image API
@@ -9,7 +9,7 @@ const USE_OVERLAY           = 0,    // "eye" circle
       USE_SOUND_EFFECTS     = 0,    // call freesound API
       USE_IMAGE_EFFECT      = 0,    // pixelation effect
       USE_EDGES             = 0,    // lines connecting the spinners
-      USE_LINE_DRAWING      = 1,    // svg line drawing effect
+      USE_LINE_DRAWING      = 0,    // svg line drawing effect
       USE_TEXT              = 0,    // text output overlay
       USE_CHAPTERS          = 1,    // shows one "chapter" at a time if true
       USE_GRAVITY           = 0;    // use gravity in the particle simulation
@@ -45,6 +45,7 @@ let particlesModule,
     overlayModule,
     natureImagesModule,
     faceImagesModule,
+    localVideoModule,
     videoPlayerModule;
 
 // audio player
@@ -299,9 +300,9 @@ class EmotionManager {
         else if (input == "sad") 
             return {rate: 0.6, pitch: 1.3, volume: 0.9}; 
         else if (input == "love") 
-            return {rate: 0.5, pitch: 0.8, volume: 1}; 
+            return {rate: 0.8, pitch: 0.9, volume: 1}; 
         else if (input == "disgust") 
-            return {rate: 0.7, pitch: 1.2, volume: 1}; 
+            return {rate: 0.7, pitch: 0.8, volume: 1}; 
         else if (input == "like") 
             return {rate: 1, pitch: 0.7, volume: 1}; 
         else if (input == "laughing") 
@@ -1302,8 +1303,8 @@ class Constellation {
     addPoint (ed, rd, color) {
         /*this.context.fillStyle = "rgba(0, 0, 0, 0.6)";
         this.context.fillRect(0, 0, this.width, this.height);*/
-        const x = convertRange( ed, [ 0, 80 ], [ 0, this.width ] );
-        const y = convertRange( rd, [ 0, 80 ], [ 0, this.height ] );
+        const x = convertRange( ed, [ 0, 80 ], [ 0, this.width - 10 ] );
+        const y = convertRange( rd, [ 0, 80 ], [ 0, this.height - 10 ] );
         
         this.targetX = x;
         this.targetY = y;
@@ -1354,7 +1355,6 @@ class ShapeDrawing {
             }
         };
 
-        
         // setup
         this.context.beginPath();
         var initColor = "#000000";
@@ -1386,8 +1386,8 @@ class ShapeDrawing {
 
     addPoint (ed, rd, color, text) {
         this.percentage = 0;
-        const x = convertRange(ed, [0, 80], [0, this.width]);
-        const y = convertRange(rd, [0, 80], [0, this.height]);
+        const x = convertRange(ed, [0, 80], [0, this.width - 10]);
+        const y = convertRange(rd, [0, 80], [0, this.height - 10]);
         
         //var shapeDataIndex = this.count % 2;
 
@@ -1410,7 +1410,6 @@ class ShapeDrawing {
             this.shapeDatas[1].prevCol = this.shapeDatas[1].targetCol;
             this.shapeDatas[1].targetCol = color;
         }
-        
         this.count++;
     }
 
@@ -1439,6 +1438,16 @@ class ShapeDrawing {
             this.context.fillStyle = col;
             this.context.fillRect(data.currX, data.currY, 3, 3);
         }
+    }
+
+    takeSnapshot () {
+        var imgData = $("#shape-drawing canvas")[0].toDataURL("image/png", 1.0);
+        var doc = new jsPDF({
+            orientation: 'landscape',
+        });
+
+        doc.addImage(imgData, 'PNG', 0, 20, totalWidth/5.65, totalHeight/5.65);
+        doc.save("graphs/download.pdf");
     }
 }
 
@@ -1480,13 +1489,36 @@ class FaceImages {
     
     enable () {
         this.elem.show();
-        $("#svg-drawing").show();
+        if (USE_LINE_DRAWING) {
+            $("#svg-drawing").show();
+        }
     }
 
     disable () {
         this.elem.hide();
-        $("#svg-drawing").hide();
+        if (USE_LINE_DRAWING) {
+            $("#svg-drawing").hide();
+        }
 
+    }
+}
+
+
+class LocalVideo {
+    constructor () {
+        this.elem = $("#local-video-module");
+        this.elem.append("<video id='localVideo' loop src='video/boiler2.MOV'></video>");
+        this.vidElem = document.getElementById("localVideo"); 
+    }
+
+    enable () {
+        this.vidElem.play();
+        this.elem.show();
+    }
+
+    disable () {
+        this.vidElem.pause();
+        this.elem.hide();
     }
 }
 
@@ -1715,6 +1747,7 @@ $(document).on("ready", function () {
     overlayModule = new Overlay();
     natureImagesModule = new NatureImages();
     faceImagesModule = new FaceImages();
+    localVideoModule = new LocalVideo();
 
     dynamicModulesList = [
             gradientModule,
@@ -1722,7 +1755,8 @@ $(document).on("ready", function () {
             particlesModule,
             imageFlickerModule,
             natureImagesModule, 
-            faceImagesModule
+            faceImagesModule,
+            localVideoModule
         ];
 
 
@@ -1772,12 +1806,11 @@ $(window).keypress(function(e) {
     if (e.which === 99) { // c
         getResponse();
     }
+    
     if (e.which === 122) { // z
-        overlayModule.animateZoomTo(-0.3)
+        shapeDrawingModule.takeSnapshot();
     }
-    if (e.which === 120) { // x
-        overlayModule.animateZoomTo(0.3)
-    } 
+
     if (e.which === 98) { // b
         if (USE_OVERLAY) {
             overlayModule.blink();
@@ -1841,6 +1874,142 @@ function playSong (name) {
 /* ========================================================================== */
 /* =========================== GET RESPONSE ================================= */
 
+function cleverbotResponseSuccess(data) {
+    $(".loading-spinner").hide();
+
+    const emotionData = {
+        name: data.emotion,
+        degree: data.emotion_degree,
+        tone: data.emotion_tone,
+        values: data.emotion_values.split(",")
+    }
+
+    const reactionData = {
+        name: data.reaction,
+        degree: data.reaction_degree,
+        tone: data.reaction_tone,
+        values: data.reaction_values.split(",")
+    }
+
+    // get emotion category and corresponding color
+    const emotionCategory = EM.getEmotionCategory(data.emotion);
+    const emotionColor = rgbToHex(EM.getColorForEmotion(data.emotion));
+
+    if (true) {
+        console.log(data);
+        //console.log("INTERACTION COUNT: ", data.interaction_count)
+        console.log("OUTPUT: ", data.output);
+        console.log("EMOTION: ", data.emotion);
+        console.log("IN CATEGORY: ", emotionCategory);
+        console.log("Emotion Degree: ", data.emotion_degree);
+        console.log("Reaction Degree: ", data.reaction_degree);
+        
+        console.log("EMOTION: ", emotionData, "REACTION: ", reactionData);
+    }
+    
+    // left or right
+    const botIndex = data.interaction_count % 2 ? 0 : 1;
+
+    // gradient
+    if (data.interaction_count > 0) {
+        gradientModule.addColor(emotionColor);
+    }
+
+    // "type" text 
+    if (USE_TEXT) {
+        typeWriter(".text-output-"+botIndex, data.output, 0)
+        blurText(0, Math.random() * 100);
+        blurText(1, Math.random() * 100);
+    }
+
+
+    if (data.interaction_count % CHAPTER_SWITCH_MOD == 0 && USE_CHAPTERS) {
+        if (chapterCount >= numDynamicModules()) {
+            chapterCount = 0;
+            overlayModule.toggleColor();
+        }
+        switchChapter(chapterCount);
+        chapterCount++;
+    }
+
+    // set eye size
+    if (data.interaction_count % EYE_SIZE_CHANGE_MOD == 0 && USE_OVERLAY) {
+        overlayModule.setEyeRadius(Math.random() * totalHeight + 10);
+    }
+
+    // add to constellation
+    constellationModule.addPoint(emotionData.degree, reactionData.degree, emotionColor)
+
+    // add to shape drawer
+    shapeDrawingModule.addPoint(emotionData.degree, reactionData.degree, emotionColor, data.output)
+
+    // add to particles
+    particlesModule.addNode(emotionColor, totalWidth/2, 0, emotionCategory);
+
+    // nature images
+    natureImagesModule.changeImage();
+
+    // set spinner speed and radius
+    const newSpinnerSpeed = convertRange(emotionData.degree, [0, 80], [1, 70]);
+    const newSpinnerRadius = convertRange(reactionData.degree, [0, 80], [1, 200]);
+
+    particlesModule.setSpinnerSpeed(botIndex, newSpinnerSpeed);
+    particlesModule.setSpinnerRadius(botIndex, newSpinnerRadius);
+
+
+    // speak
+    const voiceParams = EM.getVoiceParamsForEmotionCategory(emotionCategory)
+
+    if (USE_VOICE) {
+        responsiveVoice.speak(data.output, "UK English Male", {
+            rate: voiceParams.rate,
+            pitch: voiceParams.pitch,
+            volume: voiceParams.volume,
+            onend: () => {
+                if (INFINITE_REPEAT) {
+                    setTimeout(function () {
+                        getResponse();
+                    }, Math.random()*4000 + 1000)
+                }
+            }
+        });
+    }
+
+    // call image API
+    if (USE_IMAGES) {
+        const imageUrl = "https://pixabay.com/api/?key="+PIXABAY_API_KEY+"&q="+encodeURIComponent(data.emotion);            
+        $.getJSON(imageUrl, function(data){
+            if (parseInt(data.totalHits) > 0){
+                const max = (data.totalHits >= 20) ? 20 : data.totalHits;
+                const index = Math.floor(Math.random() * max);
+
+                // add to modules
+                imageModule.addImage(data.hits[index].webformatURL, botIndex);
+                imageFlickerModule.addImage(data.hits[index].webformatURL, botIndex, data.hits[index].tags);
+            }
+            else
+                console.log('No hits');
+        });
+    }
+
+    // call youtube API
+    if (USE_VIDEOS && data.interaction_count > 1) {
+        const videoUrl = "https://www.googleapis.com/youtube/v3/search?key="+YOUTUBE_API_KEY+"&part=snippet&q="+encodeURIComponent(data.output);
+        $.getJSON(videoUrl, function(data){
+            console.log(videoPlayerModule);
+            const id = data.items[0].id.videoId;
+          
+            if (videoPlayerModule && videoPlayerModule.isReady) {
+                videoPlayerModule.player.loadVideoById(id);
+            }
+      });
+    }
+
+    // store previous reply
+    prevOutput = data.output;
+    prevCs = data.cs;
+}
+
 /* 
   returns a JSON response from the cleverbot API using the prevOutpt as the input
 */
@@ -1854,141 +2023,17 @@ function getResponse () {
     const cleverbotUrl = "http://www.cleverbot.com/getreply?key=" + CLEVERBOT_API_KEY + "&input=" + 
                 encodeURIComponent(prevOutput) + "&cs=" + prevCs + "&cb_settings_emotion=yes";
     
-    // call cleverbot API
-    $.getJSON(cleverbotUrl, function(data) {        
-        $(".loading-spinner").hide();
-
-        const emotionData = {
-            name: data.emotion,
-            degree: data.emotion_degree,
-            tone: data.emotion_tone,
-            values: data.emotion_values.split(",")
+    var request = $.ajax({
+        dataType: "json",
+        url: cleverbotUrl,
+        success: cleverbotResponseSuccess,
+        timeout: 10000
+    }).fail( function( xhr, status ) {
+        if( status == "timeout" ) {
+            // try agian if it takes too long
+            console.log("TIMEOUT");
+            getResponse();
         }
-
-        const reactionData = {
-            name: data.reaction,
-            degree: data.reaction_degree,
-            tone: data.reaction_tone,
-            values: data.reaction_values.split(",")
-        }
-
-        // get emotion category and corresponding color
-        const emotionCategory = EM.getEmotionCategory(data.emotion);
-        const emotionColor = rgbToHex(EM.getColorForEmotion(data.emotion));
-
-        if (true) {
-            console.log(data);
-            //console.log("INTERACTION COUNT: ", data.interaction_count)
-            console.log("OUTPUT: ", data.output);
-            console.log("EMOTION: ", data.emotion);
-            console.log("IN CATEGORY: ", emotionCategory);
-            console.log("Emotion Degree: ", data.emotion_degree);
-            console.log("Reaction Degree: ", data.reaction_degree);
-            
-            console.log("EMOTION: ", emotionData, "REACTION: ", reactionData);
-        }
-        
-        // left or right
-        const botIndex = data.interaction_count % 2 ? 0 : 1;
-
-        // gradient
-        if (data.interaction_count > 0) {
-            gradientModule.addColor(emotionColor);
-        }
-
-        // "type" text 
-        if (USE_TEXT) {
-            typeWriter(".text-output-"+botIndex, data.output, 0)
-            blurText(0, Math.random() * 100);
-            blurText(1, Math.random() * 100);
-        }
-
-
-        if (data.interaction_count % CHAPTER_SWITCH_MOD == 0 && USE_CHAPTERS) {
-            if (chapterCount >= numDynamicModules()) {
-                chapterCount = 0;
-                overlayModule.toggleColor();
-            }
-            switchChapter(chapterCount);
-            chapterCount++;
-        }
-
-        // set eye size
-        if (data.interaction_count % EYE_SIZE_CHANGE_MOD == 0 && USE_OVERLAY) {
-            overlayModule.setEyeRadius(Math.random() * totalHeight + 10);
-        }
-
-        // add to constellation
-        constellationModule.addPoint(emotionData.degree, reactionData.degree, emotionColor)
-
-        // add to shape drawer
-        shapeDrawingModule.addPoint(emotionData.degree, reactionData.degree, emotionColor, data.output)
-
-        // add to particles
-        particlesModule.addNode(emotionColor, totalWidth/2, 0, emotionCategory);
-
-        // nature images
-        natureImagesModule.changeImage();
-
-        // set spinner speed and radius
-        const newSpinnerSpeed = convertRange(emotionData.degree, [0, 80], [1, 70]);
-        const newSpinnerRadius = convertRange(reactionData.degree, [0, 80], [1, 200]);
-
-        particlesModule.setSpinnerSpeed(botIndex, newSpinnerSpeed);
-        particlesModule.setSpinnerRadius(botIndex, newSpinnerRadius);
-
-
-        // speak
-        const voiceParams = EM.getVoiceParamsForEmotionCategory(emotionCategory)
-
-        if (USE_VOICE) {
-            responsiveVoice.speak(data.output, "UK English Male", {
-                rate: voiceParams.rate,
-                pitch: voiceParams.pitch,
-                volume: voiceParams.volume,
-                onend: () => {
-                    if (INFINITE_REPEAT) {
-                        setTimeout(function () {
-                            getResponse();
-                        }, Math.random()*4000 + 1000)
-                    }
-                }
-            });
-        }
-
-        // call image API
-        if (USE_IMAGES) {
-            const imageUrl = "https://pixabay.com/api/?key="+PIXABAY_API_KEY+"&q="+encodeURIComponent(data.emotion);            
-            $.getJSON(imageUrl, function(data){
-                if (parseInt(data.totalHits) > 0){
-                    const max = (data.totalHits >= 20) ? 20 : data.totalHits;
-                    const index = Math.floor(Math.random() * max);
-
-                    // add to modules
-                    imageModule.addImage(data.hits[index].webformatURL, botIndex);
-                    imageFlickerModule.addImage(data.hits[index].webformatURL, botIndex, data.hits[index].tags);
-                }
-                else
-                    console.log('No hits');
-            });
-        }
-
-        // call youtube API
-        if (USE_VIDEOS && data.interaction_count > 1) {
-            const videoUrl = "https://www.googleapis.com/youtube/v3/search?key="+YOUTUBE_API_KEY+"&part=snippet&q="+encodeURIComponent(data.output);
-            $.getJSON(videoUrl, function(data){
-                console.log(videoPlayerModule);
-                const id = data.items[0].id.videoId;
-              
-                if (videoPlayerModule && videoPlayerModule.isReady) {
-                    videoPlayerModule.player.loadVideoById(id);
-                }
-          });
-        }
-
-        // store previous reply
-        prevOutput = data.output;
-        prevCs = data.cs;
     });
 }
 
