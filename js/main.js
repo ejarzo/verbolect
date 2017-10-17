@@ -1476,9 +1476,9 @@ class NatureImages {
     }
 }
 
-/* ======================== NATURE IMAGE CLASS =================================
+/* ========================== FACE IMAGE CLASS =================================
     
-    Responsible for the selection of nature images
+    Responsible for Face image collage
 */
 class FaceImages {
     constructor(folder){
@@ -1503,7 +1503,10 @@ class FaceImages {
     }
 }
 
-
+/* ======================= LOCAL VIDEO IMAGE CLASS =============================
+    
+    Responsible for video of the boiler room 
+*/
 class LocalVideo {
     constructor () {
         this.elem = $("#local-video-module");
