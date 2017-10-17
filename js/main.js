@@ -17,12 +17,41 @@ const USE_OVERLAY           = 1,    // "eye" circle
 
 const EYE_RADIUS            = 320,  // radius of roving eye
       EYE_SIZE_CHANGE_MOD   = 5;    // how often the eye changes size
-      CHAPTER_SWITCH_MOD    = 4;    // how often the chapters change
+      CHAPTER_SWITCH_MOD    = 1;    // how often the chapters change
 
 const totalWidth = getViewport()[0],       // width of the view
       totalHeight = getViewport()[1];      // height of the view
 
 let currChapterIndex = chapterCount = 0;
+
+const keywordToAudioMapping = {
+    "human": "ding/ding2.mp3",
+    "robot": "ding/ding1.mp3",
+    "bot": "ding/ding1.mp3",
+    "i don't know": "error/error2.mp3",
+    "haha": "laugh/laugh1.mp3",
+    "hahaha": "laugh/laugh1.mp3",
+    "hahahaha": "laugh/laugh1.mp3",
+    "hahahahaha": "laugh/laugh1.mp3",
+    "i love disco": "misc/i_love_disco.mp3",
+    "animal": "animal/coyote.mp3",
+    "already": "clear_throat/clear_throat1.mp3",
+    "alive": "animal/bird.mp3",
+    "dead": "technology/interference.mp3",
+    // "he": "",
+    // "she": "",
+    // "they": "",
+    // "i ": "",
+    // "you": "",
+    "congratulations": "misc/applause.mp3",
+    "what is your name?": "technology/phone1.mp3",
+    "computer": "technology/typing.mp3"
+
+
+
+    //"robot": ""
+}
+
 
 /* ========================================================================== */
 /* =========================== Variables ==================================== */
@@ -31,7 +60,7 @@ let currChapterIndex = chapterCount = 0;
 let EM;
 
 // init state
-let prevOutput = "Tell me a joke";
+let prevOutput = "What is your favorite color";
 let prevCs = "";
 
 // the modules
@@ -46,11 +75,12 @@ let particlesModule,
     natureImagesModule,
     faceImagesModule,
     localVideoModule,
+    livestreamModule,
     videoPlayerModule;
 
 // audio player
 let audio = new Audio();
-audio.src = 'audio/tin_tap.wav';
+audio.volume = 0.4;
 
 // modules that will show and hide
 let dynamicModulesList;
@@ -306,9 +336,9 @@ class EmotionManager {
         else if (input == "like") 
             return {rate: 1, pitch: 0.7, volume: 1}; 
         else if (input == "laughing") 
-            return {rate: 1.3, pitch: 1.2, volume: 1}; 
+            return {rate: 1.2, pitch: 1.2, volume: 1}; 
         else if (input == "surprise") 
-            return {rate: 1.4, pitch: 1.2, volume: 1.2};
+            return {rate: 1.3, pitch: 1.2, volume: 1.2};
 
         return {rate: 1, pitch: 1, volume: 1};
     }
@@ -962,11 +992,11 @@ class ImageDisplay {
     }
 
     disable () {
-        ("#image-module").hide();
+        $("#image-module").hide();
     }
 
     enable () {
-        ("#image-module").show();
+        $("#image-module").show();
     }
 
     addImage (url, isRight) {
@@ -1197,7 +1227,7 @@ class VideoPlayer {
         $("#ytplayer").hide();
     }
 
-    unmute () {
+    unMute () {
         this.player.unMute();
         //INFINITE_REPEAT = false;
     }
@@ -1314,6 +1344,14 @@ class Constellation {
 
         this.context.fillStyle = color;
         this.context.fillRect(x-1, y-1, 3, 3);
+    }
+
+    enable () {
+        $("#constellation").show();
+    }
+
+    disable () {
+        $("#constellation").hide();
     }
 }
 
@@ -1447,7 +1485,7 @@ class ShapeDrawing {
         });
 
         doc.addImage(imgData, 'PNG', 0, 20, totalWidth/5.65, totalHeight/5.65);
-        doc.save("graphs/download.pdf");
+        doc.save("graph.pdf");
     }
 }
 
@@ -1456,10 +1494,9 @@ class ShapeDrawing {
     Responsible for the selection of nature images
 */
 class NatureImages {
-    constructor(folder){
+    constructor(){
         this.elem = $("#nature-image-module");
-        //this.elem.css("background", "url(img/faces.jpg)");
-
+        this.elem.css("background", "url(img/nature_images/nature1.jpg)");
     } 
     
     enable () {
@@ -1471,8 +1508,8 @@ class NatureImages {
     }
 
     changeImage () {
-        const index = parseInt(Math.random()*12);
-        this.elem.css("background", "url(img/nature_images/"+index+".jpg)");
+        const index = parseInt(Math.random()*100);
+        this.elem.css("background", "url(img/nature_images/nature"+index+".jpg)");
     }
 }
 
@@ -1510,7 +1547,7 @@ class FaceImages {
 class LocalVideo {
     constructor () {
         this.elem = $("#local-video-module");
-        this.elem.append("<video id='localVideo' loop src='video/boiler2.MOV'></video>");
+        this.elem.append("<video id='localVideo' loop src='video/boiler2.mp4'></video>");
         this.vidElem = document.getElementById("localVideo"); 
     }
 
@@ -1521,6 +1558,29 @@ class LocalVideo {
 
     disable () {
         this.vidElem.pause();
+        this.elem.hide();
+    }
+}
+
+/* ======================= LOCAL VIDEO IMAGE CLASS =============================
+    
+    Responsible for the NEST livestream 
+*/
+class Livestream {
+    constructor () {
+        this.elem = $("#livestream-module");
+        // this.elem.append('<iframe allowfullscreen webkitallowfullscreen mozallowfullscreen\
+        //                     src="https://video.nest.com/embedded/live/VNi3HIAXyu" frameborder="0"\
+        //                     width="'+totalWidth+'" height="'+totalHeight+'"></iframe>');
+    }
+
+    enable () {
+        //this.vidElem.play();
+        this.elem.show();
+    }
+
+    disable () {
+        //this.vidElem.pause();
         this.elem.hide();
     }
 }
@@ -1551,6 +1611,7 @@ class Overlay {
             this.fillStyle = "#000";
         }
     }
+
     /* initialize the overlay */
     renderOverlay() {
         const vp = getViewport();
@@ -1578,7 +1639,7 @@ class Overlay {
         ctx.filter = "none";
     }
 
-    blink () {
+    blink (onClosed, onEnd) {
         var speed = 100;
         var closedTime = 200;
 
@@ -1588,11 +1649,13 @@ class Overlay {
                 if (this.radius - count < 0) {
                     t.stop();
                     
-                    imageFlickerModule.toggleActive();
+                    onClosed();
+
+                    //imageFlickerModule.toggleActive();
                     this.blinkClosed(this.radius);
                     
-                    const randIndex = parseInt(Math.random() * dynamicModulesList.length);
-                    switchChapter(randIndex);
+                    //const randIndex = parseInt(Math.random() * dynamicModulesList.length);
+                    //switchChapter(randIndex);
                    
                     count = this.radius;
                     var t2 = d3.timer((elapsed) => {
@@ -1600,6 +1663,7 @@ class Overlay {
                             if (count <= 0) {
                                 t2.stop();
                                 this.blinkClosed(0);
+                                onEnd();
                             } else {
                                 this.blinkClosed(count);
                                 count -= speed;
@@ -1650,6 +1714,27 @@ class Overlay {
                 }
             }
         })
+    }
+
+    setEyeSpeed (emotionCategory) {
+        let time = 2;
+
+        if (emotionCategory == "anger") 
+            time = 0.5;
+        else if (emotionCategory == "sad") 
+            time = 10;
+        else if (emotionCategory == "love") 
+            time = 3;
+        else if (emotionCategory == "disgust") 
+            time = 4;
+        else if (emotionCategory == "like") 
+            time = 8;
+        else if (emotionCategory == "laughing") 
+            time = 2;
+        else if (emotionCategory == "surprise") 
+            time = 1;
+
+        $("#overlay").css("transition", "all "+time+"s");
     }
 
     animateRadius (count) {
@@ -1724,6 +1809,7 @@ class Overlay {
     }
 }
 
+
 /* ========================================================================== */
 /* ========================== DOCUMENT READY ================================ */
 
@@ -1744,24 +1830,32 @@ $(document).on("ready", function () {
     historyModule = new History();
     particlesModule = new Particles();
     imageModule = new ImageDisplay();
-    imageFlickerModule = new ImageFlicker();
+    //imageFlickerModule = new ImageFlicker();
     constellationModule = new Constellation();
     shapeDrawingModule = new ShapeDrawing();
     overlayModule = new Overlay();
     natureImagesModule = new NatureImages();
     faceImagesModule = new FaceImages();
     localVideoModule = new LocalVideo();
+    livestreamModule = new Livestream();
 
     dynamicModulesList = [
             gradientModule,
             historyModule,
             particlesModule,
-            imageFlickerModule,
+            imageModule,
             natureImagesModule, 
             faceImagesModule,
+            constellationModule,
+            livestreamModule,
             localVideoModule
         ];
 
+
+    var AudioContext = window.AudioContext || window.webkitAudioContext;
+    var audioCtx = new AudioContext();
+    var panner = audioCtx.createPanner(-1);
+    var listener = audioCtx.listener;
 
 
     // start with one response
@@ -1771,18 +1865,23 @@ $(document).on("ready", function () {
         $(".dynamic-modules .module-section").hide();
     }
 
-    if (USE_OVERLAY) {
-        overlayModule.blink();
-    }
+    // if (USE_OVERLAY) {
+    //     overlayModule.blink();
+    // }
 
     // Start random eye movements
     if (USE_RANDOM_MOVEMENTS) {
         loop(5000, 2000, () => overlayModule.moveEyeToRandomLocation());      
-        loop(5000, 2000, () => {
-            if (currChapterIndex == 5) {
-                $("#nature-image-module").css("transform", "scale("+(Math.random()*3+1)+")")
+        /*loop(5000, 2000, () => {
+            if (currChapterIndex == 4) {
+                $("#nature-image-module").css({
+                    "background-size": Math.random()*800 + "% ",
+                    "background-position": Math.random()*100 + "% " + Math.random()*100 + "%"
+                    //"transform": "scale("+(Math.random() * 20)+")",
+                })
+
             }
-        });
+        });*/
         loop(10000, 5000, () => {
             if (currChapterIndex == 5) {
                 $("#face-image-module").css({
@@ -1793,12 +1892,12 @@ $(document).on("ready", function () {
             }
            
         });
-        /*loop(5000, 2000, () => {
-            $("#shape-drawing").css("transform", "scale("+(Math.random()*3+1)+")")
-        });*/
-        //loop(5000, 2000, () => overlayModule.moveModulesToRandomLocation());      
     }
+
+
+    //playAudioForResponse("i don't know");
 })
+
 
 /* ========================================================================== */
 /* ============================= HANDLERS =================================== */
@@ -1815,11 +1914,7 @@ $(window).keypress(function(e) {
     }
 
     if (e.which === 98) { // b
-        if (USE_OVERLAY) {
-            overlayModule.blink();
-        } else {
-            switchChapter(parseInt(Math.random() * dynamicModulesList.length))
-        }
+        switchChapter(parseInt(Math.random() * dynamicModulesList.length))
     } 
     if (e.which === 110) { // n
         overlayModule.setEyeRadius(800);
@@ -1874,8 +1969,11 @@ function playSong (name) {
     //audio.src = 'audio/'+name+'.mp3';
     audio.play();
 }
+
+
 /* ========================================================================== */
 /* =========================== GET RESPONSE ================================= */
+let changeEyeSizeNext = false;
 
 function cleverbotResponseSuccess(data) {
     $(".loading-spinner").hide();
@@ -1931,14 +2029,30 @@ function cleverbotResponseSuccess(data) {
             chapterCount = 0;
             overlayModule.toggleColor();
         }
-        switchChapter(chapterCount);
-        chapterCount++;
+        const c = chapterCount;
+        overlayModule.blink(() => {
+            switchChapter(c);
+        }, () => {
+            // set eye size
+            if (changeEyeSizeNext) {
+                overlayModule.setEyeRadius(Math.random() * totalHeight + 10);
+            }
+        })
     }
 
+    // set eye speed
+    overlayModule.setEyeSpeed(emotionCategory);
+    
     // set eye size
     if (data.interaction_count % EYE_SIZE_CHANGE_MOD == 0 && USE_OVERLAY) {
-        overlayModule.setEyeRadius(Math.random() * totalHeight + 10);
+        changeEyeSizeNext = true;
+        //overlayModule.setEyeRadius(Math.random() * totalHeight + 10);
+    } else {
+        changeEyeSizeNext = false;
     }
+    //switchChapter(chapterCount);
+    chapterCount++;
+
 
     // add to constellation
     constellationModule.addPoint(emotionData.degree, reactionData.degree, emotionColor)
@@ -1964,11 +2078,22 @@ function cleverbotResponseSuccess(data) {
     const voiceParams = EM.getVoiceParamsForEmotionCategory(emotionCategory)
 
     if (USE_VOICE) {
-        responsiveVoice.speak(data.output, "UK English Male", {
+        responsiveVoice.speak(data.output, "UK English Female", {
             rate: voiceParams.rate,
             pitch: voiceParams.pitch,
             volume: voiceParams.volume,
             onend: () => {
+                // check for substrings
+                playAudioForResponse(data.output);
+
+                if (data.output.toLowerCase().indexOf("favorite") >= 0 || data.output.toLowerCase().indexOf("favourite") >= 0) { 
+                    videoPlayerModule.unMute();
+                    setTimeout(() => {
+                        videoPlayerModule.mute();
+
+                    }, 30000)
+                } 
+
                 if (INFINITE_REPEAT) {
                     setTimeout(function () {
                         getResponse();
@@ -1988,7 +2113,7 @@ function cleverbotResponseSuccess(data) {
 
                 // add to modules
                 imageModule.addImage(data.hits[index].webformatURL, botIndex);
-                imageFlickerModule.addImage(data.hits[index].webformatURL, botIndex, data.hits[index].tags);
+                //imageFlickerModule.addImage(data.hits[index].webformatURL, botIndex, data.hits[index].tags);
             }
             else
                 console.log('No hits');
@@ -2000,9 +2125,10 @@ function cleverbotResponseSuccess(data) {
         const videoUrl = "https://www.googleapis.com/youtube/v3/search?key="+YOUTUBE_API_KEY+"&part=snippet&q="+encodeURIComponent(data.output);
         $.getJSON(videoUrl, function(data){
             console.log(videoPlayerModule);
-            const id = data.items[0].id.videoId;
+            const index = data.items.length() >= 5 ? Math.floor(Math.random() * 5) : Math.floor(Math.random() * data.items.length)
+            const id = data.items[index].id.videoId;
           
-            if (videoPlayerModule && videoPlayerModule.isReady) {
+            if (id && videoPlayerModule && videoPlayerModule.isReady) {
                 videoPlayerModule.player.loadVideoById(id);
             }
       });
@@ -2040,11 +2166,24 @@ function getResponse () {
     });
 }
 
+
 /* ========================================================================== */
 /* ============================== HELPER ==================================== */
+
+function playAudioForResponse (input) {
+    jQuery.each(keywordToAudioMapping, function(i, val) {
+        //console.log(i);
+        if (input.toLowerCase().indexOf(i) >= 0) { 
+            audio.src = 'audio/' + val;
+            audio.play();
+        } 
+    });
+}
+
 function numDynamicModules () {
     return dynamicModulesList.length;
 }
+
 function blurText (i, amount) {
     $(".text-output-"+i).css({
         //"font-size": Math.random() * 200 + 30,
