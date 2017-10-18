@@ -1,23 +1,23 @@
 /* ========================================================================== */
 /* ============================ OPTIONS ===================================== */
 
-const USE_OVERLAY           = 1,    // "eye" circle
+const USE_OVERLAY           = 0,    // "eye" circle
       USE_RANDOM_MOVEMENTS  = 1,    // searching around
       USE_VOICE             = 1,    // audio
       USE_IMAGES            = 1,    // call image API
       USE_VIDEOS            = 1,    // call youtube API
       USE_SOUND_EFFECTS     = 0,    // call freesound API
       USE_IMAGE_EFFECT      = 0,    // pixelation effect
-      USE_EDGES             = 0,    // lines connecting the spinners
+      USE_EDGES             = 1,    // lines connecting the spinners
       USE_LINE_DRAWING      = 0,    // svg line drawing effect
-      USE_TEXT              = 0,    // text output overlay
+      USE_TEXT              = 1,    // text output overlay
       USE_CHAPTERS          = 1,    // shows one "chapter" at a time if true
       USE_GRAVITY           = 0;    // use gravity in the particle simulation
       INFINITE_REPEAT       = 0;    // run indefinitely 
 
 const EYE_RADIUS            = 320,  // radius of roving eye
       EYE_SIZE_CHANGE_MOD   = 5;    // how often the eye changes size
-      CHAPTER_SWITCH_MOD    = 1;    // how often the chapters change
+      CHAPTER_SWITCH_MOD    = 4;    // how often the chapters change
 
 const totalWidth = getViewport()[0],       // width of the view
       totalHeight = getViewport()[1];      // height of the view
@@ -38,18 +38,15 @@ const keywordToAudioMapping = {
     "already": "clear_throat/clear_throat1.mp3",
     "alive": "animal/bird.mp3",
     "dead": "technology/interference.mp3",
+    "congratulations": "misc/applause.mp3",
+    "nice job": "misc/applause.mp3",
+    "what is your name?": "technology/phone1.mp3",
+    "computer": "technology/typing.mp3"
     // "he": "",
     // "she": "",
     // "they": "",
     // "i ": "",
     // "you": "",
-    "congratulations": "misc/applause.mp3",
-    "what is your name?": "technology/phone1.mp3",
-    "computer": "technology/typing.mp3"
-
-
-
-    //"robot": ""
 }
 
 
@@ -60,7 +57,7 @@ const keywordToAudioMapping = {
 let EM;
 
 // init state
-let prevOutput = "What is your favorite color";
+let prevOutput = "";
 let prevCs = "";
 
 // the modules
@@ -87,6 +84,27 @@ let dynamicModulesList;
 
 /* ========================================================================== */
 /* ======================= CLASS DEFINITIONS ================================ */
+
+const emotionGraphNoiseAmounts = {
+    "flirty": 2, 
+    "silly": 5,
+    "amused": 5, 
+    "shocked": 6, 
+    "disbelief": 4, 
+    "surprised": 5, 
+    "jumpy": 8, 
+    "crying": 3, 
+    "very sad": 2, 
+    "confused": 5, 
+    "embarrassed": 3, 
+    "reluctant": 2, 
+    "concerned": 3, 
+    "distracted": 7, 
+    "lazy": 5, 
+    "furious": 7,
+    "infuriated": 9,
+    "sarcastic": 3, 
+}
 
 
 /* ===================== EMOTION MANAGER CLASS =================================
@@ -716,7 +734,7 @@ class Particles {
                 .attr("class", "edge-bottom-right")
 
             if (USE_EDGES) {
-                edges.attr("stroke-width", 2);
+                edges.attr("stroke-width", 6);
             } else {
                 edges.attr("stroke-width", 0);
             }
@@ -1269,11 +1287,11 @@ function onYouTubeIframeAPIReady() {
                 dynamicModulesList.push(videoPlayerModule);
             },
             onStateChange: (e) => {
-                if (e.data === 1) {
-                    $("#ytplayer").css({"opacity": 1});
-                } else {
-                    $("#ytplayer").css({"opacity": 0});
-                }
+                // if (e.data === 1) {
+                //     $("#ytplayer").css({"opacity": 1});
+                // } else {
+                //     $("#ytplayer").css({"opacity": 0});
+                // }
             }
         }
     });
@@ -1381,6 +1399,8 @@ class ShapeDrawing {
         this.clearBackground = () => {
             this.context.fillStyle = "rgba(0,0,0,.005)";
             this.context.fillRect(0, 0, width, height);
+
+        this.currEmotion = "";
         }
 
         // draw
@@ -1422,7 +1442,9 @@ class ShapeDrawing {
         d3.timer(this.step);
     }
 
-    addPoint (ed, rd, color, text) {
+    addPoint (ed, rd, color, text, emotion) {
+        this.currEmotion = emotion;
+
         this.percentage = 0;
         const x = convertRange(ed, [0, 80], [0, this.width - 10]);
         const y = convertRange(rd, [0, 80], [0, this.height - 10]);
@@ -1467,8 +1489,17 @@ class ShapeDrawing {
         var col = blendColors(rgb1.r, rgb1.g, rgb1.b, rgb2.r, rgb2.g, rgb2.b, this.percentage)
         col = rgbToHex(col);
         
-        data.currX += xDiff / 100 /*+ Math.random() * 4 - 2*/;
-        data.currY += yDiff / 100 /*+ Math.random() * 4 - 2*/;
+        let randomModifier = emotionGraphNoiseAmounts[this.currEmotion];
+        let xMod = 0,
+            yMod = 0;
+
+        if (randomModifier) {
+            xMod =  Math.random() * randomModifier - randomModifier/2;
+            yMod =  Math.random() * randomModifier - randomModifier/2;
+        }
+
+        data.currX += xDiff / 100 + xMod;
+        data.currY += yDiff / 100 + yMod;
 
         var minCount = data.widthMod ? 3 : 2;
 
@@ -1931,7 +1962,7 @@ $(window).keypress(function(e) {
         blurText(1, 100);
     }
     if (e.which === 112) {  // p
-        videoPlayerModule.unmute();
+        videoPlayerModule.unMute();
     }
     if (e.which === 111) {  // o
         videoPlayerModule.mute();
@@ -2036,6 +2067,7 @@ function cleverbotResponseSuccess(data) {
             // set eye size
             if (changeEyeSizeNext) {
                 overlayModule.setEyeRadius(Math.random() * totalHeight + 10);
+                changeEyeSizeNext = false;
             }
         })
     }
@@ -2048,7 +2080,7 @@ function cleverbotResponseSuccess(data) {
         changeEyeSizeNext = true;
         //overlayModule.setEyeRadius(Math.random() * totalHeight + 10);
     } else {
-        changeEyeSizeNext = false;
+        //changeEyeSizeNext = false;
     }
     //switchChapter(chapterCount);
     chapterCount++;
@@ -2058,7 +2090,7 @@ function cleverbotResponseSuccess(data) {
     constellationModule.addPoint(emotionData.degree, reactionData.degree, emotionColor)
 
     // add to shape drawer
-    shapeDrawingModule.addPoint(emotionData.degree, reactionData.degree, emotionColor, data.output)
+    shapeDrawingModule.addPoint(emotionData.degree, reactionData.degree, emotionColor, data.output, emotionData.name)
 
     // add to particles
     particlesModule.addNode(emotionColor, totalWidth/2, 0, emotionCategory);
@@ -2078,9 +2110,9 @@ function cleverbotResponseSuccess(data) {
     const voiceParams = EM.getVoiceParamsForEmotionCategory(emotionCategory)
 
     if (USE_VOICE) {
-        responsiveVoice.speak(data.output, "UK English Female", {
+        responsiveVoice.speak(data.output, data.interaction_count % 2 ? "UK English Male" : "US English Female", {
             rate: voiceParams.rate,
-            pitch: voiceParams.pitch,
+            pitch: data.interaction_count % 2 ? voiceParams.pitch : voiceParams.pitch/4,
             volume: voiceParams.volume,
             onend: () => {
                 // check for substrings
@@ -2113,6 +2145,9 @@ function cleverbotResponseSuccess(data) {
 
                 // add to modules
                 imageModule.addImage(data.hits[index].webformatURL, botIndex);
+                console.log("IMAGE TAGS ====================" ,data.hits[index]);
+                console.log(prevOutput);
+                //prevOutput += " " + data.hits[index].tags;
                 //imageFlickerModule.addImage(data.hits[index].webformatURL, botIndex, data.hits[index].tags);
             }
             else
@@ -2122,16 +2157,48 @@ function cleverbotResponseSuccess(data) {
 
     // call youtube API
     if (USE_VIDEOS && data.interaction_count > 1) {
-        const videoUrl = "https://www.googleapis.com/youtube/v3/search?key="+YOUTUBE_API_KEY+"&part=snippet&q="+encodeURIComponent(data.output);
+        const videoUrl = "https://www.googleapis.com/youtube/v3/search?key="+YOUTUBE_API_KEY+"&part=snippet&maxResults=5&q="+encodeURIComponent(data.output);
         $.getJSON(videoUrl, function(data){
             console.log(videoPlayerModule);
-            const index = data.items.length() >= 5 ? Math.floor(Math.random() * 5) : Math.floor(Math.random() * data.items.length)
+            console.log("YOUTUBE DATA", data);
+            const index = Math.floor(Math.random() * 5);
+            
+            const description = data.items[index].snippet.description;
+            const title = data.items[index].snippet.description;
+            console.log("YOUTUBE DESCRIPTION", description);
+
             const id = data.items[index].id.videoId;
-          
+            //prevOutput += " " + description;
+
             if (id && videoPlayerModule && videoPlayerModule.isReady) {
                 videoPlayerModule.player.loadVideoById(id);
             }
-      });
+
+            const commentsUrl = "https://www.googleapis.com/youtube/v3/commentThreads?key="+YOUTUBE_API_KEY+"&part=snippet&textFormat=plainText&order=relevance&maxResults=5&videoId="+id;
+
+            $.ajax({
+                dataType: "json",
+                url: commentsUrl,
+                success: (data) => {
+                    console.log("COMMENTS =====================", data);
+                    const firstComment = data.items[0].snippet.topLevelComment.snippet.textDisplay;
+                    console.log("FIRST COMMENT: ", firstComment);
+                    //prevOutput += " " + firstComment;
+                },
+                timeout: 1000
+            }).fail( function( xhr, status ) {
+                if( status == "timeout" ) {
+                    console.log("YOUTUBE TIMEOUT");
+                }
+            });
+
+            // $.getJSON(commentsUrl, function(data){
+            //     console.log("COMMENTS =====================", data);
+            //     const firstComment = data.items[0].snippet.topLevelComment.snippet.textDisplay;
+            //     console.log("FIRST COMMENT: ", firstComment);
+            //     prevOutput += " " + firstComment;
+            // });
+        });
     }
 
     // store previous reply
@@ -2148,7 +2215,8 @@ function getResponse () {
     if (USE_LINE_DRAWING) {
         addSvg(parseInt(Math.random()*11) + 1);
     }
-
+    console.log("ENCODING:", prevOutput);
+    console.log("TO:", encodeURIComponent(prevOutput));
     const cleverbotUrl = "http://www.cleverbot.com/getreply?key=" + CLEVERBOT_API_KEY + "&input=" + 
                 encodeURIComponent(prevOutput) + "&cs=" + prevCs + "&cb_settings_emotion=yes";
     
