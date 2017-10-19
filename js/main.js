@@ -49,6 +49,26 @@ const keywordToAudioMapping = {
     // "you": "",
 }
 
+const emotionGraphNoiseAmounts = {
+    "flirty": 2, 
+    "silly": 5,
+    "amused": 1, 
+    "shocked": 6, 
+    "surprised": 5, 
+    "jumpy": 8, 
+    "crying": 3, 
+    "very sad": 2, 
+    "confused": 5, 
+    "embarrassed": 3, 
+    "reluctant": 2, 
+    "concerned": 3, 
+    "distracted": 6, 
+    "lazy": 1, 
+    "furious": 7,
+    "infuriated": 9,
+    "sarcastic": 3, 
+}
+
 
 /* ========================================================================== */
 /* =========================== Variables ==================================== */
@@ -84,27 +104,6 @@ let dynamicModulesList;
 
 /* ========================================================================== */
 /* ======================= CLASS DEFINITIONS ================================ */
-
-const emotionGraphNoiseAmounts = {
-    "flirty": 2, 
-    "silly": 5,
-    "amused": 5, 
-    "shocked": 6, 
-    "disbelief": 4, 
-    "surprised": 5, 
-    "jumpy": 8, 
-    "crying": 3, 
-    "very sad": 2, 
-    "confused": 5, 
-    "embarrassed": 3, 
-    "reluctant": 2, 
-    "concerned": 3, 
-    "distracted": 7, 
-    "lazy": 5, 
-    "furious": 7,
-    "infuriated": 9,
-    "sarcastic": 3, 
-}
 
 
 /* ===================== EMOTION MANAGER CLASS =================================
@@ -667,8 +666,36 @@ class Particles {
         
         this.setSpinnerSpeed = (i, s) => {
             // invert
-            var speed = 100 / s; 
-            spinners[i].speed = 100 / s
+
+            console.log("CURR SPEED", spinners[i].speed)
+            console.log("TARGET SPEED", s)
+            var speed = parseInt(100 / s); 
+
+            //const delay = 1;
+            const direction = spinners[i].speed >= speed ? 0 : 1;
+            console.log("Dir", direction)
+
+            let t = d3.timer(() => {
+                if (direction) {
+                    spinners[i].speed += 0.5;
+                    console.log("CURR SPEED==========", spinners[i].speed)
+                    console.log("TARGET SPEED", speed)
+                    if (spinners[i].speed >= speed) {
+                        spinners[i].speed = speed;
+                        t.stop();
+                    }
+                } else {
+                    spinners[i].speed -= 0.5;
+                    console.log("CURR SPEED======", spinners[i].speed)
+                    console.log("TARGET SPEED", speed)
+                    if (spinners[i].speed < speed) {
+                        spinners[i].speed = speed;
+                        t.stop();
+                    }
+                }
+            })
+
+            //spinners[i].speed = 100 / s
         } 
         
         this.setSpinnerPos = () => {
@@ -1395,7 +1422,7 @@ class ShapeDrawing {
         this.context = this.canvas.node().getContext("2d");
 
         this.isRight = () => this.count % 2;
-        
+        this.context.font="12px Inconsolata";
         this.clearBackground = () => {
             this.context.fillStyle = "rgba(0,0,0,.005)";
             this.context.fillRect(0, 0, width, height);
@@ -1444,8 +1471,8 @@ class ShapeDrawing {
 
     addPoint (ed, rd, color, text, emotion) {
         this.currEmotion = emotion;
-
         this.percentage = 0;
+
         const x = convertRange(ed, [0, 80], [0, this.width - 10]);
         const y = convertRange(rd, [0, 80], [0, this.height - 10]);
         
@@ -1458,17 +1485,38 @@ class ShapeDrawing {
             this.rightShapeData.currX = totalWidth - x;
             this.rightShapeData.currY = y;
         }
+
         this.targetX = x;
         this.targetY = y;
 
         if (this.isRight()) {
-            this.context.strokeText(text,x,y);
+            
+            $(".text-output-1").css({"left": this.targetX - 10, "top": this.targetY - 18});
+            $(".text-output-1").css({"opacity": 1});
+            $(".text-output-1").css({"background": color});
+
+                setTimeout(() => {
+                    this.context.strokeText(text,x,y);
+                    $(".text-output-1").css({"opacity": 0});
+                }, 4000)
+
             this.shapeDatas[0].prevCol = this.shapeDatas[0].targetCol;
             this.shapeDatas[0].targetCol = color;
+
         } else {
-            this.context.strokeText(text,totalWidth-x,y);
+
+            $(".text-output-0").css({"left": totalWidth - x - 10, "top": this.targetY - 18});
+            $(".text-output-0").css({"opacity": 1});
+            $(".text-output-0").css({"background": color});
+
+                setTimeout(() => {
+                    this.context.strokeText(text,totalWidth - x,y);
+                    $(".text-output-0").css({"opacity": 0});
+                }, 4000)
+
             this.shapeDatas[1].prevCol = this.shapeDatas[1].targetCol;
             this.shapeDatas[1].targetCol = color;
+
         }
         this.count++;
     }
@@ -1489,7 +1537,7 @@ class ShapeDrawing {
         var col = blendColors(rgb1.r, rgb1.g, rgb1.b, rgb2.r, rgb2.g, rgb2.b, this.percentage)
         col = rgbToHex(col);
         
-        let randomModifier = emotionGraphNoiseAmounts[this.currEmotion];
+        let randomModifier = emotionGraphNoiseAmounts[this.currEmotion] * 0.9;
         let xMod = 0,
             yMod = 0;
 
@@ -2008,7 +2056,7 @@ let changeEyeSizeNext = false;
 
 function cleverbotResponseSuccess(data) {
     $(".loading-spinner").hide();
-
+    switchChapter(2);
     const emotionData = {
         name: data.emotion,
         degree: data.emotion_degree,
@@ -2050,8 +2098,8 @@ function cleverbotResponseSuccess(data) {
     // "type" text 
     if (USE_TEXT) {
         typeWriter(".text-output-"+botIndex, data.output, 0)
-        blurText(0, Math.random() * 100);
-        blurText(1, Math.random() * 100);
+        //blurText(0, Math.random() * 100);
+        //blurText(1, Math.random() * 100);
     }
 
 
@@ -2103,7 +2151,8 @@ function cleverbotResponseSuccess(data) {
     const newSpinnerRadius = convertRange(reactionData.degree, [0, 80], [1, 200]);
 
     particlesModule.setSpinnerSpeed(botIndex, newSpinnerSpeed);
-    particlesModule.setSpinnerRadius(botIndex, newSpinnerRadius);
+    
+    //particlesModule.setSpinnerRadius(botIndex, newSpinnerRadius);
 
 
     // speak
@@ -2457,3 +2506,8 @@ function blendColors(r1,g1,b1,r2,g2,b2,balance) {
             b : Math.floor(b1*nbal + b2*bal)
            };
 } 
+
+function shadeColor2(color, percent) {   
+    var f=parseInt(color.slice(1),16),t=percent<0?0:255,p=percent<0?percent*-1:percent,R=f>>16,G=f>>8&0x00FF,B=f&0x0000FF;
+    return "#"+(0x1000000+(Math.round((t-R)*p)+R)*0x10000+(Math.round((t-G)*p)+G)*0x100+(Math.round((t-B)*p)+B)).toString(16).slice(1);
+}
