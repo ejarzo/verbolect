@@ -16,13 +16,19 @@ const USE_OVERLAY           = 0,    // "eye" circle
       INFINITE_REPEAT       = 0;    // run indefinitely 
 
 const EYE_RADIUS            = 320,  // radius of roving eye
-      EYE_SIZE_CHANGE_MOD   = 5;    // how often the eye changes size
-      CHAPTER_SWITCH_MOD    = 4;    // how often the chapters change
+      EYE_SIZE_CHANGE_MOD   = 1;    // how often the eye changes size
+      CHAPTER_SWITCH_MOD    = 1;    // how often the chapters change
 
 const totalWidth = getViewport()[0],       // width of the view
       totalHeight = getViewport()[1];      // height of the view
 
-let currChapterIndex = chapterCount = 0;
+let SEQUENCE_COUNT = 0,
+    RESPOSNE_COUNT = 0,
+    NUM_RESPONSES_FOR_SEQUENCE = 5,
+    MAX_RESPONSES_PER_PRINT = 200;
+
+let currChapterIndex = 0,
+    chapterCount = 0;
 
 const keywordToAudioMapping = {
     "human": "ding/ding2.mp3",
@@ -667,27 +673,27 @@ class Particles {
         this.setSpinnerSpeed = (i, s) => {
             // invert
 
-            console.log("CURR SPEED", spinners[i].speed)
-            console.log("TARGET SPEED", s)
+            //console.log("CURR SPEED", spinners[i].speed)
+            //console.log("TARGET SPEED", s)
             var speed = parseInt(100 / s); 
 
             //const delay = 1;
             const direction = spinners[i].speed >= speed ? 0 : 1;
-            console.log("Dir", direction)
+            //console.log("Dir", direction)
 
             let t = d3.timer(() => {
                 if (direction) {
                     spinners[i].speed += 0.5;
-                    console.log("CURR SPEED==========", spinners[i].speed)
-                    console.log("TARGET SPEED", speed)
+                    //console.log("CURR SPEED==========", spinners[i].speed)
+                    //console.log("TARGET SPEED", speed)
                     if (spinners[i].speed >= speed) {
                         spinners[i].speed = speed;
                         t.stop();
                     }
                 } else {
                     spinners[i].speed -= 0.5;
-                    console.log("CURR SPEED======", spinners[i].speed)
-                    console.log("TARGET SPEED", speed)
+                    //console.log("CURR SPEED======", spinners[i].speed)
+                    //console.log("TARGET SPEED", speed)
                     if (spinners[i].speed < speed) {
                         spinners[i].speed = speed;
                         t.stop();
@@ -740,25 +746,25 @@ class Particles {
             edges.append("line")
                 .attr("class", "edge-middle")
                 
-            edges.append("line")
-                .attr("x1", 0)
-                .attr("y1", 0)
-                .attr("class", "edge-top-left")
+            // edges.append("line")
+            //     .attr("x1", 0)
+            //     .attr("y1", 0)
+            //     .attr("class", "edge-top-left")
             
-            edges.append("line")
-                .attr("x1", 0)
-                .attr("y1", height)
-                .attr("class", "edge-bottom-left")
+            // edges.append("line")
+            //     .attr("x1", 0)
+            //     .attr("y1", height)
+            //     .attr("class", "edge-bottom-left")
             
-            edges.append("line")
-                .attr("x1", width)
-                .attr("y1", 0)
-                .attr("class", "edge-top-right")
+            // edges.append("line")
+            //     .attr("x1", width)
+            //     .attr("y1", 0)
+            //     .attr("class", "edge-top-right")
             
-            edges.append("line")
-                .attr("x1", width)
-                .attr("y1", height)
-                .attr("class", "edge-bottom-right")
+            // edges.append("line")
+            //     .attr("x1", width)
+            //     .attr("y1", height)
+            //     .attr("class", "edge-bottom-right")
 
             if (USE_EDGES) {
                 edges.attr("stroke-width", 6);
@@ -1415,19 +1421,22 @@ class ShapeDrawing {
         this.count = 0;
         const width = this.width = totalWidth;
         const height = this.height = totalHeight;
+        this.isPaused = false;
 
         this.canvas = d3.select("#shape-drawing").append("canvas")
             .attr("width", width)
             .attr("height", height);
         this.context = this.canvas.node().getContext("2d");
+        this.currEmotion = "";
 
         this.isRight = () => this.count % 2;
-        this.context.font="12px Inconsolata";
+
+        this.context.font = "12px Inconsolata";
+        this.context.strokeText("SEQUENCE 0", 10, 10);
+
         this.clearBackground = () => {
             this.context.fillStyle = "rgba(0,0,0,.005)";
             this.context.fillRect(0, 0, width, height);
-
-        this.currEmotion = "";
         }
 
         // draw
@@ -1466,10 +1475,14 @@ class ShapeDrawing {
         this.shapeDatas = [this.leftShapeData, this.rightShapeData];
 
         // start
-        d3.timer(this.step);
+        this.timer = d3.timer(this.step);
     }
 
     addPoint (ed, rd, color, text, emotion) {
+        if (this.isPaused) {
+            this.timer = d3.timer(this.step);
+            this.isPaused = !this.isPaused;
+        }
         this.currEmotion = emotion;
         this.percentage = 0;
 
@@ -1495,10 +1508,12 @@ class ShapeDrawing {
             $(".text-output-1").css({"opacity": 1});
             $(".text-output-1").css({"background": color});
 
+            typeWriter(".text-output-1", text, 0, () => {
+                this.context.strokeText(text,x,y);
                 setTimeout(() => {
-                    this.context.strokeText(text,x,y);
                     $(".text-output-1").css({"opacity": 0});
-                }, 4000)
+                }, 1500)
+            })
 
             this.shapeDatas[0].prevCol = this.shapeDatas[0].targetCol;
             this.shapeDatas[0].targetCol = color;
@@ -1509,10 +1524,14 @@ class ShapeDrawing {
             $(".text-output-0").css({"opacity": 1});
             $(".text-output-0").css({"background": color});
 
+
+            typeWriter(".text-output-0", text, 0, () => {
+                this.context.strokeText(text,totalWidth-x,y);
                 setTimeout(() => {
-                    this.context.strokeText(text,totalWidth - x,y);
                     $(".text-output-0").css({"opacity": 0});
-                }, 4000)
+                }, 1500)
+            })
+
 
             this.shapeDatas[1].prevCol = this.shapeDatas[1].targetCol;
             this.shapeDatas[1].targetCol = color;
@@ -1557,14 +1576,42 @@ class ShapeDrawing {
         }
     }
 
-    takeSnapshot () {
-        var imgData = $("#shape-drawing canvas")[0].toDataURL("image/png", 1.0);
-        var doc = new jsPDF({
-            orientation: 'landscape',
-        });
+    takeSnapshot (onEnd) {
 
-        doc.addImage(imgData, 'PNG', 0, 20, totalWidth/5.65, totalHeight/5.65);
-        doc.save("graph.pdf");
+        $("#shape-drawing").css({"background": "rgba(255,255,255,1)"});
+      /*  
+        $("#shape-drawing").animate({
+          backgroundColor: 'rgba(255,255,255,1)'
+        });*/
+
+        setTimeout(() => {
+            // save image as pdf   
+            const date = new Date();     
+            const imgData = $("#shape-drawing canvas")[0].toDataURL("image/png", 1.0);
+            const doc = new jsPDF({
+                orientation: 'landscape',
+            });
+            doc.addImage(imgData, 'PNG', 0, 20, totalWidth/5.65, totalHeight/5.65);
+            doc.save("VERBOLECT_SEQUENCE_" + SEQUENCE_COUNT + "_" + date + ".pdf");
+
+            this.timer.stop();
+            this.isPaused = true;
+
+            // clear modules
+            this.context.clearRect(0, 0, totalWidth, totalHeight);
+
+            //getResponse();
+            setTimeout(() => {
+                this.context.strokeText("SEQUENCE " + (SEQUENCE_COUNT + 1), 10, 10);
+                onEnd();
+            }, 5000)
+
+            setTimeout(() => {
+                $("#shape-drawing").css({"background": "rgba(255,255,255,0)"});
+            }, 10000)
+
+        }, 5000)
+
     }
 }
 
@@ -1677,12 +1724,22 @@ class Overlay {
         this.radius = EYE_RADIUS;
         this.blurAmount = 40;
         this.fillStyle = "#000";
+        this.height = 3 * totalHeight;
+        this.width = 3 * totalWidth;
+        this.currScale = 1;
+
+        this.blinkTimer;
+        this.expandTimer;
+
+        this.isBlinking = false;
+        this.isChangingSize = false;
+
         if (USE_OVERLAY) {
             this.renderOverlay();
         }
-        this.currScale = 1;
     }
 
+    /* Toggle between black and white background */
     toggleColor() {
         if (this.fillStyle == "#000") {
             this.fillStyle = "#FFF";
@@ -1708,6 +1765,10 @@ class Overlay {
     clipArc(ctx, x, y, rx, ry, f, blurAmount) {
         ctx.globalCompositeOperation = 'destination-out';
 
+        // cant do negative TODO
+        if (rx < 0) rx = 10;
+        if (ry < 0) ry = 10;
+
         ctx.filter = "blur("+blurAmount+"px)";  // "feather"
         ctx.beginPath();
         ctx.ellipse(x, y, rx, ry, 0, 0, 2 * Math.PI);
@@ -1719,30 +1780,33 @@ class Overlay {
     }
 
     blink (onClosed, onEnd) {
-        var speed = 100;
-        var closedTime = 200;
-
-        var count = speed;
+        const speed = this.radius/4;
+        const closedTime = 200;
+        let count = speed;
+        
         if (USE_OVERLAY) {
-            var t = d3.timer(() => {
-                if (this.radius - count < 0) {
-                    t.stop();
-                    
-                    onClosed();
 
-                    //imageFlickerModule.toggleActive();
-                    this.blinkClosed(this.radius);
+
+            this.blinkTimer = d3.timer(() => {
+                
+                if (this.radius - count < 0) {
                     
-                    //const randIndex = parseInt(Math.random() * dynamicModulesList.length);
-                    //switchChapter(randIndex);
-                   
+                    this.blinkClosed(this.radius);
                     count = this.radius;
-                    var t2 = d3.timer((elapsed) => {
+                    if (onClosed) {
+                        onClosed();
+                    }
+
+                    this.blinkTimer.restart((elapsed) => {
                         if (elapsed > closedTime) {
                             if (count <= 0) {
-                                t2.stop();
+                                this.blinkTimer.stop();
                                 this.blinkClosed(0);
-                                onEnd();
+                                this.isBlinking = false;
+
+                                if (onEnd) {
+                                    onEnd();
+                                }
                             } else {
                                 this.blinkClosed(count);
                                 count -= speed;
@@ -1753,17 +1817,22 @@ class Overlay {
                     this.blinkClosed(count);
                     count += speed;
                 }
-            }, 0);
+            });
         }
     }
    
+    clearBackground () {
+        this.ctx.fillStyle = this.fillStyle;
+
+        this.ctx.fillRect(-1*overlay.width, -1*overlay.height, overlay.width*2, overlay.height*2);
+    }
+
     blinkClosed (count) {
         const vp = getViewport();
         overlay.width = 3 * vp[0];
         overlay.height = 3 * vp[1];
-        this.ctx.fillStyle = this.fillStyle;
-
-        this.ctx.fillRect(-1*overlay.width, -1*overlay.height, overlay.width*2, overlay.height*2);
+        
+        this.clearBackground();
         this.clipArc(this.ctx, overlay.width/2, overlay.height/2, this.radius, this.radius - count, 10, this.blurAmount);
     }
     
@@ -1785,6 +1854,8 @@ class Overlay {
             } else {
                 if (this.radius + count <= targetR) {
                     t.stop();
+                    this.isChangingSize = false;
+
                     //this.animateRadius(targetR);
                     this.radius = targetR;
                 } else {
@@ -1795,6 +1866,21 @@ class Overlay {
         })
     }
 
+    animateRadius (count) {
+        const vp = getViewport();
+        overlay.width = 3 * vp[0];
+        overlay.height = 3 * vp[1];
+
+        var targetR = this.radius + count;
+        this.blurAmount = targetR*0.1;
+        this.ctx.fillStyle = this.fillStyle;
+
+        this.ctx.fillRect(-1*overlay.width, -1*overlay.height, overlay.width*2, overlay.height*2);
+        this.clipArc(this.ctx, overlay.width/2, overlay.height/2, targetR, targetR, 10, this.blurAmount);
+    }
+
+
+    /* sets speed of eye based on emotion */
     setEyeSpeed (emotionCategory) {
         let time = 2;
 
@@ -1816,19 +1902,7 @@ class Overlay {
         $("#overlay").css("transition", "all "+time+"s");
     }
 
-    animateRadius (count) {
-        const vp = getViewport();
-        overlay.width = 3 * vp[0];
-        overlay.height = 3 * vp[1];
-
-        var targetR = this.radius + count;
-        this.blurAmount = targetR*0.1;
-        this.ctx.fillStyle = this.fillStyle;
-
-        this.ctx.fillRect(-1*overlay.width, -1*overlay.height, overlay.width*2, overlay.height*2);
-        this.clipArc(this.ctx, overlay.width/2, overlay.height/2, targetR, targetR, 10, this.blurAmount);
-    }
-
+  
     /* animate the overlay center to x, y coordinates */
     setOverlayPos(x, y) {
         var xBuffer = -0.5*overlay.width;
@@ -1837,54 +1911,34 @@ class Overlay {
         //$("#overlay").animate({"left": x + xBuffer, "top" : y + yBuffer}, animateTime);
         $("#overlay").css({"left": x + xBuffer, "top" : y + yBuffer});
     }
-    
+    /* moves eye to random position */
+      moveEyeToRandomLocation () {
+          var vp = getViewport();
+          var width = vp[0];
+          var height = vp[1];
+          var x = Math.random() * vp[0];
+          x = (x < EYE_RADIUS) ? EYE_RADIUS : x;
+          x = (x > width - EYE_RADIUS) ? width - EYE_RADIUS : x;
+          y = (y < EYE_RADIUS) ? EYE_RADIUS : y;
+          y = (y > height - EYE_RADIUS) ? height - EYE_RADIUS : y;
+
+          var y = Math.random() * vp[1];
+          // if (x > width-width/4 || x < width/4) {
+          //     x = (x * Math.random() * .8) + (width / 2);
+          // }
+
+          // if (y > height-height/4 || x < height/4) {
+          //     y = (y * Math.random() * .8) + (height / 2);
+          // }
+
+          this.setOverlayPos(x, y)
+      }
+
     /* animate the whole canvas under the eye to x, y coordinates */
     setModulesPos(x, y) {
         var xBuffer = totalWidth / -2;
         var yBuffer = $(".dynamic-modules").height()/-2;
         $(".dynamic-modules").css({"left": x + xBuffer, "top" : y + yBuffer});
-    }
-
-    /* moves eye to random position */
-    moveEyeToRandomLocation () {
-        var vp = getViewport();
-        var width = vp[0];
-        var height = vp[1];
-        var x = Math.random() * vp[0];
-        x = (x < EYE_RADIUS) ? EYE_RADIUS : x;
-        x = (x > width - EYE_RADIUS) ? width - EYE_RADIUS : x;
-        y = (y < EYE_RADIUS) ? EYE_RADIUS : y;
-        y = (y > height - EYE_RADIUS) ? height - EYE_RADIUS : y;
-
-        var y = Math.random() * vp[1];
-        // if (x > width-width/4 || x < width/4) {
-        //     x = (x * Math.random() * .8) + (width / 2);
-        // }
-
-        // if (y > height-height/4 || x < height/4) {
-        //     y = (y * Math.random() * .8) + (height / 2);
-        // }
-
-        this.setOverlayPos(x, y)
-    }
-
-    /* moves modules to random position */
-    moveModulesToRandomLocation () {
-        var vp = getViewport();
-        var width = vp[0];
-        var height = $(".dynamic-modules").height();
-        height = height * 2 - height/2;
-        var x = Math.random() * width;
-        var y = Math.random() * height;
-
-        this.setModulesPos(x, y)
-    }
-
-    /* animate the scale (zoom) of the canvas beneath the eye */
-    animateZoomTo (amount) {
-        this.currScale += amount;
-        const newTrans = "scale3d("+this.currScale+","+this.currScale+","+this.currScale+")";
-        $(".dynamic-modules").css("transform", newTrans);  
     }
 }
 
@@ -1995,13 +2049,22 @@ $(window).keypress(function(e) {
     if (e.which === 98) { // b
         switchChapter(parseInt(Math.random() * dynamicModulesList.length))
     } 
+
     if (e.which === 110) { // n
-        overlayModule.setEyeRadius(800);
+        overlayModule.setEyeRadius(100);
     }
+   
+    if (e.which === 109) { // n
+       overlayModule.blink(() => {
+
+       });
+    }
+
     if (e.which === 100) { // d
         //dump();
         generateNRandomNodes(200)
     }
+
     if (e.which === 102) {  // f
         clearParticles();
     } 
@@ -2056,7 +2119,11 @@ let changeEyeSizeNext = false;
 
 function cleverbotResponseSuccess(data) {
     $(".loading-spinner").hide();
-    switchChapter(2);
+
+    RESPOSNE_COUNT++;
+
+
+    //switchChapter(2);
     const emotionData = {
         name: data.emotion,
         degree: data.emotion_degree,
@@ -2097,17 +2164,20 @@ function cleverbotResponseSuccess(data) {
 
     // "type" text 
     if (USE_TEXT) {
-        typeWriter(".text-output-"+botIndex, data.output, 0)
+        //typeWriter(".text-output-"+botIndex, data.output, 0)
         //blurText(0, Math.random() * 100);
         //blurText(1, Math.random() * 100);
     }
 
-
+    // time to switch chapters
     if (data.interaction_count % CHAPTER_SWITCH_MOD == 0 && USE_CHAPTERS) {
+        
+        // loop back to first
         if (chapterCount >= numDynamicModules()) {
             chapterCount = 0;
             overlayModule.toggleColor();
         }
+
         const c = chapterCount;
         overlayModule.blink(() => {
             switchChapter(c);
@@ -2118,6 +2188,8 @@ function cleverbotResponseSuccess(data) {
                 changeEyeSizeNext = false;
             }
         })
+
+        chapterCount++;
     }
 
     // set eye speed
@@ -2131,7 +2203,7 @@ function cleverbotResponseSuccess(data) {
         //changeEyeSizeNext = false;
     }
     //switchChapter(chapterCount);
-    chapterCount++;
+   
 
 
     // add to constellation
@@ -2175,7 +2247,21 @@ function cleverbotResponseSuccess(data) {
                     }, 30000)
                 } 
 
-                if (INFINITE_REPEAT) {
+                if (RESPOSNE_COUNT >= NUM_RESPONSES_FOR_SEQUENCE) {
+                    console.log("PRINTING SEQUENCE: ", SEQUENCE_COUNT);
+                    shapeDrawingModule.takeSnapshot(() => {
+                        SEQUENCE_COUNT++;
+                        RESPOSNE_COUNT = 0;
+                        NUM_RESPONSES_FOR_SEQUENCE = parseInt (Math.random() * 10);  
+
+                        console.log("============= NEW SEQUENCE =======================");
+                        console.log("WILL GO FOR ", NUM_RESPONSES_FOR_SEQUENCE, " RESPONSES");
+
+                        getResponse();                      
+                    });
+
+
+                } else if (INFINITE_REPEAT) {
                     setTimeout(function () {
                         getResponse();
                     }, Math.random()*4000 + 1000)
@@ -2267,7 +2353,7 @@ function getResponse () {
     console.log("ENCODING:", prevOutput);
     console.log("TO:", encodeURIComponent(prevOutput));
     const cleverbotUrl = "http://www.cleverbot.com/getreply?key=" + CLEVERBOT_API_KEY + "&input=" + 
-                encodeURIComponent(prevOutput) + "&cs=" + prevCs + "&cb_settings_emotion=yes";
+                encodeURIComponent(prevOutput) + "&cs=" + prevCs + "&cb_settings_emotion=yes&cb_settings_tweak2=60&cb_settings_tweak1=60";
     
     var request = $.ajax({
         dataType: "json",
@@ -2405,23 +2491,26 @@ function getCircleCenter (circle) {
     }
 }
 
-function typeWriter(target, text, n) {
-  if (n < (text.length)) {
-    $(target).html(text.substring(0, n+1));
-    n++;
-    setTimeout(function() {
-      typeWriter(target, text, n)
-    }, 100);
-  }
+function typeWriter(target, text, n, onEnd) {
+    if (n < (text.length)) {
+        $(target).html(text.substring(0, n+1));
+            n++;
+            setTimeout(function() {
+              typeWriter(target, text, n, onEnd)
+        }, 100);
+    } else {
+        onEnd()
+        $(target).css("opacity", 0);
+    }
 }
 
-$('.start').click(function(e) {
+/*$('.start').click(function(e) {
   e.stopPropagation();
   
   var text = $('.test').data('text');
   
   typeWriter(text, 0);
-});
+});*/
 
 /* toggles browser fullscreen mode */
 function toggleFullScreen () {

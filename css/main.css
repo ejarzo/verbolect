@@ -53,6 +53,7 @@ html {
     right: 0; }
   .static-modules #shape-drawing {
     left: 0;
+    background: rgba(255, 255, 255, 0);
     transition: all 2s ease;
     transform: scale(1); }
   .static-modules #svg-drawing {
@@ -82,13 +83,13 @@ html {
     padding: 5px 10px;
     background: #fff;
     color: #222;
-    transition: all 2s ease;
+    transition: all 3s ease;
     position: absolute; }
   .text-output .text-output-1 {
     padding: 5px 10px;
     background: #fff;
     color: #222;
-    transition: all 2s ease;
+    transition: all 3s ease;
     position: absolute; }
 
 .dynamic-modules {
