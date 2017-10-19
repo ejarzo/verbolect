@@ -1,2 +1,127 @@
-html{color:#222;font-size:1em;line-height:1.4;font-family:"Inconsolata",monospace;background:#000;margin:0;padding:0;height:100%;width:100%}html::-webkit-scrollbar{width:0 !important}#controls{position:fixed;top:0;left:0;color:#777;padding:0px;height:10px;text-align:top;font-size:10px;z-index:2000}#controls button{border:1px solid #777;background:none}#controls .loading-spinner{position:absolute;left:3px;top:3px;display:none}#overlay{position:fixed;transition:all 1s;z-index:1000}.module-group{left:0;right:0}.static-modules{position:absolute;top:0;left:0}.static-modules .module{z-index:1000;position:absolute;left:0;top:0;bottom:0;right:0}.static-modules #shape-drawing{left:0;transition:all 2s ease;transform:scale(1)}.static-modules #svg-drawing{transform:scale(1.2)}.static-modules #svg-drawing svg{height:100%;width:100%}@keyframes dash{50%{stroke-dashoffset:0}}.static-modules #svg-drawing path{stroke:#fff;stroke-width:3;fill:none;animation:dash 30s ease-in-out}.text-output{position:absolute;bottom:0;left:0;top:0;color:rgba(255,255,255,0.6);margin:0;font-size:20rem;mix-blend-mode:overlay;display:none;z-index:5000}.text-output .text-output-0{transition:all 2s ease;position:absolute;left:0;top:0;mix-blend-mode:overlay}.text-output .text-output-1{transition:all 2s ease;position:absolute;right:0;top:0;float:right;text-align:right;padding-top:90px;mix-blend-mode:overlay}.dynamic-modules{transition:.5s;transform:scale3d(1, 1, 1)}.dynamic-modules .module-section{top:0;left:0}.dynamic-modules #gradient-group .module{height:100%}.dynamic-modules #gradient-group #emotion-gradient-bottom{margin-bottom:-100vh}.dynamic-modules #emotion-gradient-top{overflow:hidden;position:relative;top:0}.dynamic-modules #ytplayer{-webkit-transition:all 1s;z-index:1000;transform:scale(1.2)}#nature-image-module,#face-image-module{transition:all 1s;transform:scale(1)}#livestream-module{transform:scale(1.2)}.clearfix::after{display:block;content:"";clear:both}
+html {
+  color: #222;
+  font-size: 1em;
+  line-height: 1.4;
+  font-family: "Inconsolata", monospace;
+  background: #000;
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  width: 100%; }
+  html::-webkit-scrollbar {
+    width: 0 !important; }
+
+#controls {
+  position: fixed;
+  top: 0;
+  left: 0;
+  color: #777;
+  padding: 0px;
+  height: 10px;
+  text-align: top;
+  font-size: 10px;
+  z-index: 2000; }
+  #controls button {
+    border: 1px solid #777;
+    background: none; }
+  #controls .loading-spinner {
+    position: absolute;
+    left: 3px;
+    top: 3px;
+    display: none; }
+
+/*  ====================================================  */
+#overlay {
+  position: fixed;
+  transition: all 1s;
+  z-index: 1000; }
+
+.module-group {
+  left: 0;
+  right: 0; }
+
+.static-modules {
+  position: absolute;
+  top: 0;
+  left: 0; }
+  .static-modules .module {
+    z-index: 1000;
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    right: 0; }
+  .static-modules #shape-drawing {
+    left: 0;
+    background: rgba(255, 255, 255, 0);
+    transition: all 2s ease;
+    transform: scale(1); }
+  .static-modules #svg-drawing {
+    transform: scale(1.2); }
+    .static-modules #svg-drawing svg {
+      height: 100%;
+      width: 100%; }
+@keyframes dash {
+  50% {
+    stroke-dashoffset: 0; } }
+    .static-modules #svg-drawing path {
+      stroke: #fff;
+      stroke-width: 3;
+      fill: none;
+      animation: dash 30s ease-in-out; }
+
+.text-output {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  top: 0;
+  color: rgba(255, 255, 255, 0.6);
+  margin: 0;
+  font-size: 12px;
+  z-index: 5000; }
+  .text-output .text-output-0 {
+    padding: 5px 10px;
+    background: #fff;
+    color: #222;
+    transition: all 3s ease;
+    position: absolute; }
+  .text-output .text-output-1 {
+    padding: 5px 10px;
+    background: #fff;
+    color: #222;
+    transition: all 3s ease;
+    position: absolute; }
+
+.dynamic-modules {
+  transition: 0.5s;
+  transform: scale3d(1, 1, 1); }
+  .dynamic-modules .module-section {
+    top: 0;
+    left: 0; }
+  .dynamic-modules #gradient-group .module {
+    height: 100%; }
+  .dynamic-modules #gradient-group #emotion-gradient-bottom {
+    margin-bottom: -100vh; }
+  .dynamic-modules #emotion-gradient-top {
+    overflow: hidden;
+    position: relative;
+    top: 0; }
+  .dynamic-modules #ytplayer {
+    -webkit-transition: all 1s;
+    z-index: 1000;
+    transform: scale(1.2); }
+
+#nature-image-module, #face-image-module {
+  transition: all 1s;
+  transform: scale(1); }
+
+#livestream-module {
+  transform: scale(1.2); }
+
+/*  ====================================================  */
+.clearfix::after {
+  display: block;
+  content: "";
+  clear: both; }
+
 /*# sourceMappingURL=main.css.map */
