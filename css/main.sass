@@ -37,6 +37,20 @@ html
 #constellation
     //background: #fff
 
+@keyframes blinker 
+    50%
+        //opacity: 0
+
+#print-alert
+    animation: blinker 1s ease-in-out 3
+    //opacity: 1
+    position: absolute
+    top: 20px
+    left: 30px
+    font-size: 100px
+    z-index: 2000
+    //mix-blend-mode: difference
+
 #overlay
     position: fixed
     transition: all 1s
@@ -62,7 +76,7 @@ html
     #shape-drawing
         left: 0
         background: rgba(255,255,255,0)
-        transition: all 2s ease
+        transition: all 8s ease
         transform: scale(1)
     
     #svg-drawing
@@ -140,6 +154,7 @@ html
 #nature-image-module, #face-image-module
     transition: all 1s
     transform: scale(1)
+    background-size: cover;
 
 #livestream-module
     transform: scale(1.2)

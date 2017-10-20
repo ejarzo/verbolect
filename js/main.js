@@ -1,7 +1,7 @@
 /* ========================================================================== */
 /* ============================ OPTIONS ===================================== */
 
-const USE_OVERLAY           = 0,    // "eye" circle
+const USE_OVERLAY           = 1,    // "eye" circle
       USE_RANDOM_MOVEMENTS  = 1,    // searching around
       USE_VOICE             = 1,    // audio
       USE_IMAGES            = 1,    // call image API
@@ -12,23 +12,33 @@ const USE_OVERLAY           = 0,    // "eye" circle
       USE_LINE_DRAWING      = 0,    // svg line drawing effect
       USE_TEXT              = 1,    // text output overlay
       USE_CHAPTERS          = 1,    // shows one "chapter" at a time if true
-      USE_GRAVITY           = 0;    // use gravity in the particle simulation
-      INFINITE_REPEAT       = 0;    // run indefinitely 
+      USE_GRAVITY           = 0,    // use gravity in the particle simulation
+      USE_PRINTING          = 1;
+
+let   INFINITE_REPEAT       = 1;    // run indefinitely 
+
+const YOUTUBE_AUDIO_ON_TIME = 45000,
+      MAX_TIME_BETWEEN_RESPONSES = 2000,
+      MIN_TIME_BETWEEN_RESPONSES = 1000;
 
 const EYE_RADIUS            = 320,  // radius of roving eye
-      EYE_SIZE_CHANGE_MOD   = 1;    // how often the eye changes size
-      CHAPTER_SWITCH_MOD    = 1;    // how often the chapters change
+      EYE_SIZE_CHANGE_MOD   = 5;    // how often the eye changes size
+      CHAPTER_SWITCH_MOD    = 6;    // how often the chapters change
 
 const totalWidth = getViewport()[0],       // width of the view
       totalHeight = getViewport()[1];      // height of the view
 
 let SEQUENCE_COUNT = 0,
     RESPOSNE_COUNT = 0,
-    NUM_RESPONSES_FOR_SEQUENCE = 5,
-    MAX_RESPONSES_PER_PRINT = 200;
+    NUM_RESPONSES_FOR_SEQUENCE = 25,
+    MAX_RESPONSES_PER_PRINT = 300,
+    MIN_RESPONSES_PER_PRINT = 50;
 
 let currChapterIndex = 0,
     chapterCount = 0;
+
+/* ========================================================================== */
+/* ======================== KEYWORD MAPPINGS ================================ */
 
 const keywordToAudioMapping = {
     "human": "ding/ding2.mp3",
@@ -51,6 +61,7 @@ const keywordToAudioMapping = {
     "cleverbot": "success/success1.mp3",
     "stop": "space/blackholes.mp3",
     "confused": "technology/calculating.mp3",
+    "confuse": "technology/calculating.mp3",
     "four": "animals/bluejay.mp3",
     "4": "animals/bluejay.mp3",
     "blue": "animals/bluejay.mp3",
@@ -630,14 +641,13 @@ class Particles {
         }
 
         this.gravity = (alpha) => {
-            if (USE_GRAVITY) {
-                for (var i = 0; i < nodes.length; i++) {
-                    let p = nodes[i]
-
-                    // bound within box
-                    p.x = Math.max(nodeRadius, Math.min(width - nodeRadius, p.x));
-                    p.y = Math.max(nodeRadius, Math.min(height - nodeRadius, p.y));
-
+            for (var i = 0; i < nodes.length; i++) {
+                let p = nodes[i]
+                // bound within box
+                p.x = Math.max(nodeRadius, Math.min(width - nodeRadius, p.x));
+                p.y = Math.max(nodeRadius, Math.min(height - nodeRadius, p.y));
+                
+                if (USE_GRAVITY) {
                     // gravity
                     p.vy += Math.min(0.5, Math.max(0, (p.y - (- height / 2 - 20)) / height ))
                 }
@@ -681,40 +691,15 @@ class Particles {
 
         this.setSpinnerRadius = (i, r) => {
             spinners[i].radius = r;
+            spinners[i].elem.transition().duration(5000).attr("cy", height / 2 - r)
+
         }
         
         this.setSpinnerSpeed = (i, s) => {
-            // invert
-
-            //console.log("CURR SPEED", spinners[i].speed)
-            //console.log("TARGET SPEED", s)
-            var speed = parseInt(100 / s); 
-
-            //const delay = 1;
-            const direction = spinners[i].speed >= speed ? 0 : 1;
-            //console.log("Dir", direction)
-
-            let t = d3.timer(() => {
-                if (direction) {
-                    spinners[i].speed += 0.5;
-                    //console.log("CURR SPEED==========", spinners[i].speed)
-                    //console.log("TARGET SPEED", speed)
-                    if (spinners[i].speed >= speed) {
-                        spinners[i].speed = speed;
-                        t.stop();
-                    }
-                } else {
-                    spinners[i].speed -= 0.5;
-                    //console.log("CURR SPEED======", spinners[i].speed)
-                    //console.log("TARGET SPEED", speed)
-                    if (spinners[i].speed < speed) {
-                        spinners[i].speed = speed;
-                        t.stop();
-                    }
-                }
-            })
-
-            //spinners[i].speed = 100 / s
+            console.log("================================================================================ SETTING SPINNER SPEED")
+            this.interval = 0;
+            const newSpeed = parseInt(100/s);
+            spinners[i].speed = newSpeed;
         } 
         
         this.setSpinnerPos = () => {
@@ -754,9 +739,9 @@ class Particles {
 
 
             // the lines tha connect the circles
-            var edges = rotateElements.append("g").attr("stroke", "white").attr("stroke-width", "2");
+            this.edges = rotateElements.append("g").attr("stroke", "white").attr("stroke-width", "2");
             
-            edges.append("line")
+            this.edges.append("line")
                 .attr("class", "edge-middle")
                 
             // edges.append("line")
@@ -780,10 +765,18 @@ class Particles {
             //     .attr("class", "edge-bottom-right")
 
             if (USE_EDGES) {
-                edges.attr("stroke-width", 6);
+                this.edges.attr("stroke-width", 6);
             } else {
-                edges.attr("stroke-width", 0);
+                this.edges.attr("stroke-width", 0);
             }
+        }
+
+        this.setEdgeStrokeWidth = (width) => {
+            //this.edges.transition().duration(3000).attr("stroke-width", width);
+        }
+
+        this.setEdgeOpacity = (opacity) => {
+            //this.edges.transition().duration(3000).attr("opacity", opacity);
         }
 
         this.setNodeChargeStrength = (val) => {
@@ -795,16 +788,38 @@ class Particles {
         }
 
         this.animateSpinners = () => {
+            
+            let stepAmound = 0.1;
+            var i2 = d3.interpolateNumber(0, 1);
             if (mode === 0) {
-                d3.timer(function() {
-                    
-                    spinners.forEach((spinner) => {
-                        spinner.elem.attr("cy", height / 2 - spinner.radius)
-                    })
-
+                d3.timer(() => {
+                    // spinners.forEach((spinner) => {
+                    //     spinner.elem.attr("cy", height / 2 - spinner.radius)
+                    // })
+                    //console.log(Date.now() - start);
+                    //console.log("STARTING: ", spinners[0].speed, "TARGET: ", this.targetSpeeds[0]);
                     var angle1 = ((Date.now() - start) / spinners[0].speed);
                     var angle2 = ((Date.now() - start) / spinners[1].speed);
                     
+
+
+                    // console.log(this.interval);
+                    // if (this.interval < 1 ) {
+                    //     var i = d3.interpolateNumber(spinners[0].speed, this.targetSpeeds[0]);
+
+                    //     console.log("-----", Number((i(this.interval)).toFixed(4)));
+
+                    //     angle1 = ((Date.now() - start) / Number((i(this.interval)).toFixed(4))); 
+                    //     this.interval += stepAmound/10;
+                    //     this.interval = Number((this.interval).toFixed(2));
+                    //     //this.interval = i2(this.interval);
+
+                    // } else {
+                    //     spinners[0].speed = this.targetSpeeds[0];
+                    //     this.interval = 1;
+                    // }
+                    
+
                     var transformCircle1 = function() {
                         return "rotate(" + angle1 + "," + width / 4 + "," + height / 2 +")";
                     };
@@ -812,10 +827,15 @@ class Particles {
                         return "rotate(" + angle2 + "," + (width - width / 4) + "," + height / 2 +")";
                     };
                     
-
                     // animate circles
                     var circle1 = spinners[0].elem;
                     var circle2 = spinners[1].elem;
+
+                    const prevTransform1 = circle1.attr("transform");
+                    //console.log(prevTransform1);
+
+
+                   
 
                     circle1.attr("transform", transformCircle1);
                     circle2.attr("transform", transformCircle2);
@@ -824,27 +844,33 @@ class Particles {
                     var circle1Center = getCircleCenter(circle1);
                     var circle2Center = getCircleCenter(circle2);
 
+                    let distance = distanceBetweenPoints(circle2Center.x, circle2Center.y, circle1Center.x, circle1Center.y);
+                    //console.log(distance);
+                    distance = parseInt(distance);
+                    distance = circle2Center.x - circle1Center.x;
+                    this.edges.attr("stroke-width", 5000/distance);
+
                     d3.select(".edge-middle")
                         .attr("x2", circle1Center.x)
                         .attr("y2", circle1Center.y)
                         .attr("x1", circle2Center.x)
                         .attr("y1", circle2Center.y);
                     
-                    d3.select(".edge-top-left")
-                        .attr("x2", circle2Center.x)
-                        .attr("y2", circle2Center.y)
+                    // d3.select(".edge-top-left")
+                    //     .attr("x2", circle2Center.x)
+                    //     .attr("y2", circle2Center.y)
                     
-                    d3.select(".edge-bottom-left")
-                        .attr("x2", circle2Center.x)
-                        .attr("y2", circle2Center.y)
+                    // d3.select(".edge-bottom-left")
+                    //     .attr("x2", circle2Center.x)
+                    //     .attr("y2", circle2Center.y)
                     
-                    d3.select(".edge-top-right")
-                        .attr("x2", circle1Center.x)
-                        .attr("y2", circle1Center.y)
+                    // d3.select(".edge-top-right")
+                    //     .attr("x2", circle1Center.x)
+                    //     .attr("y2", circle1Center.y)
                     
-                    d3.select(".edge-bottom-right")
-                        .attr("x2", circle1Center.x)
-                        .attr("y2", circle1Center.y)
+                    // d3.select(".edge-bottom-right")
+                    //     .attr("x2", circle1Center.x)
+                    //     .attr("y2", circle1Center.y)
                     
                     return (mode === 0) ? true : false;
                 });
@@ -947,6 +973,7 @@ class Particles {
             }
         ];
 
+        this.targetSpeeds = [0, 0]
         // init
         this.initSimulation();
         this.initSpinners();
@@ -1517,9 +1544,10 @@ class ShapeDrawing {
 
         if (this.isRight()) {
             
-            $(".text-output-1").css({"left": this.targetX - 10, "top": this.targetY - 18});
+            $(".text-output-1").css({"left": this.targetX - 10, "top": this.targetY - 17});
             $(".text-output-1").css({"opacity": 1});
-            $(".text-output-1").css({"background": color});
+            $(".text-output-1").css({"background": "#000"});
+            $(".text-output-1").css({"color": "#fff"});
 
             typeWriter(".text-output-1", text, 0, () => {
                 this.context.strokeText(text,x,y);
@@ -1533,9 +1561,10 @@ class ShapeDrawing {
 
         } else {
 
-            $(".text-output-0").css({"left": totalWidth - x - 10, "top": this.targetY - 18});
+            $(".text-output-0").css({"left": totalWidth - x - 10, "top": this.targetY - 17});
             $(".text-output-0").css({"opacity": 1});
-            $(".text-output-0").css({"background": color});
+            $(".text-output-0").css({"background": "#000"});
+            $(".text-output-0").css({"color": "#fff"});
 
 
             typeWriter(".text-output-0", text, 0, () => {
@@ -1597,24 +1626,38 @@ class ShapeDrawing {
           backgroundColor: 'rgba(255,255,255,1)'
         });*/
 
-        setTimeout(() => {
+       // setTimeout(() => {
             // save image as pdf   
             const date = new Date();     
             const imgData = $("#shape-drawing canvas")[0].toDataURL("image/png", 1.0);
             const doc = new jsPDF({
                 orientation: 'landscape',
             });
-            doc.addImage(imgData, 'PNG', 0, 20, totalWidth/5.65, totalHeight/5.65);
+
+            const printSizeRatio = 6.65;
+            doc.addImage(imgData, 'PNG', 4, 20, totalWidth/printSizeRatio, totalHeight/printSizeRatio);
             doc.save("VERBOLECT_SEQUENCE_" + SEQUENCE_COUNT + "_" + date + ".pdf");
 
             this.timer.stop();
             this.isPaused = true;
 
             // clear modules
-            this.context.clearRect(0, 0, totalWidth, totalHeight);
+            historyModule.dumpColors();
+            particlesModule.clear();
+
+            // set number of responses for next sequence
+            NUM_RESPONSES_FOR_SEQUENCE = parseInt (Math.random() * MAX_RESPONSES_PER_PRINT + MIN_RESPONSES_PER_PRINT);
+
+            $("#print-alert").html("\
+                PRINTING SEQUENCE "+SEQUENCE_COUNT+"<br>\
+                NEXT PRINTOUT IN "+NUM_RESPONSES_FOR_SEQUENCE+" RESPONSES")
+            
+            $("#print-alert").show();
 
             //getResponse();
             setTimeout(() => {
+                $("#print-alert").hide();
+                this.context.clearRect(0, 0, totalWidth, totalHeight);
                 this.context.strokeText("SEQUENCE " + (SEQUENCE_COUNT + 1), 10, 10);
                 onEnd();
             }, 5000)
@@ -1623,7 +1666,7 @@ class ShapeDrawing {
                 $("#shape-drawing").css({"background": "rgba(255,255,255,0)"});
             }, 10000)
 
-        }, 5000)
+        //}, 10000)
 
     }
 }
@@ -1648,7 +1691,8 @@ class NatureImages {
 
     changeImage () {
         const index = parseInt(Math.random()*100);
-        this.elem.css("background", "url(img/nature_images/nature"+index+".jpg)");
+        this.elem.css("background", "url(img/nature_images/nature"+index+".jpg) no-repeat center center fixed");
+        this.elem.css("background-size", "cover");
     }
 }
 
@@ -1708,9 +1752,9 @@ class LocalVideo {
 class Livestream {
     constructor () {
         this.elem = $("#livestream-module");
-        // this.elem.append('<iframe allowfullscreen webkitallowfullscreen mozallowfullscreen\
-        //                     src="https://video.nest.com/embedded/live/VNi3HIAXyu" frameborder="0"\
-        //                     width="'+totalWidth+'" height="'+totalHeight+'"></iframe>');
+        this.elem.append('<iframe allowfullscreen webkitallowfullscreen mozallowfullscreen\
+                            src="https://video.nest.com/embedded/live/DVkQ5chGch" frameborder="0"\
+                            width="'+totalWidth+'" height="'+totalHeight+'"></iframe>');
     }
 
     enable () {
@@ -2193,6 +2237,7 @@ function cleverbotResponseSuccess(data) {
 
         const c = chapterCount;
         overlayModule.blink(() => {
+            CHAPTER_SWITCH_MOD = parseInt(Math.random() * 11 + 1);
             switchChapter(c);
         }, () => {
             // set eye size
@@ -2226,7 +2271,9 @@ function cleverbotResponseSuccess(data) {
     shapeDrawingModule.addPoint(emotionData.degree, reactionData.degree, emotionColor, data.output, emotionData.name)
 
     // add to particles
-    particlesModule.addNode(emotionColor, totalWidth/2, 0, emotionCategory);
+    setIntervalX(() => {
+        particlesModule.addNode(emotionColor, totalWidth/2, 10, emotionCategory);
+    }, 500, 3)
 
     // nature images
     natureImagesModule.changeImage();
@@ -2236,9 +2283,9 @@ function cleverbotResponseSuccess(data) {
     const newSpinnerRadius = convertRange(reactionData.degree, [0, 80], [1, 200]);
 
     particlesModule.setSpinnerSpeed(botIndex, newSpinnerSpeed);
-    
-    //particlesModule.setSpinnerRadius(botIndex, newSpinnerRadius);
+    particlesModule.setSpinnerRadius(botIndex, newSpinnerRadius);
 
+    //particlesModule.setEdgeStrokeWidth(parseInt(Math.random() * 10));
 
     // speak
     const voiceParams = EM.getVoiceParamsForEmotionCategory(emotionCategory)
@@ -2257,15 +2304,15 @@ function cleverbotResponseSuccess(data) {
                     setTimeout(() => {
                         videoPlayerModule.mute();
 
-                    }, 30000)
+                    }, YOUTUBE_AUDIO_ON_TIME)
                 } 
 
-                if (RESPOSNE_COUNT >= NUM_RESPONSES_FOR_SEQUENCE) {
+                if (USE_PRINTING && RESPOSNE_COUNT >= NUM_RESPONSES_FOR_SEQUENCE) {
                     console.log("PRINTING SEQUENCE: ", SEQUENCE_COUNT);
+
                     shapeDrawingModule.takeSnapshot(() => {
                         SEQUENCE_COUNT++;
                         RESPOSNE_COUNT = 0;
-                        NUM_RESPONSES_FOR_SEQUENCE = parseInt (Math.random() * 10);  
 
                         console.log("============= NEW SEQUENCE =======================");
                         console.log("WILL GO FOR ", NUM_RESPONSES_FOR_SEQUENCE, " RESPONSES");
@@ -2277,7 +2324,7 @@ function cleverbotResponseSuccess(data) {
                 } else if (INFINITE_REPEAT) {
                     setTimeout(function () {
                         getResponse();
-                    }, Math.random()*4000 + 1000)
+                    }, Math.random() * 10000 + 1000)
                 }
             }
         });
@@ -2363,6 +2410,8 @@ function getResponse () {
     if (USE_LINE_DRAWING) {
         addSvg(parseInt(Math.random()*11) + 1);
     }
+
+    prevOutput = prevOutput.replace(/'/,'')
     console.log("ENCODING:", prevOutput);
     console.log("TO:", encodeURIComponent(prevOutput));
     const cleverbotUrl = "http://www.cleverbot.com/getreply?key=" + CLEVERBOT_API_KEY + "&input=" + 
@@ -2373,10 +2422,14 @@ function getResponse () {
         url: cleverbotUrl,
         success: cleverbotResponseSuccess,
         timeout: 10000
-    }).fail( function( xhr, status ) {
+    }).fail( function( xhr, status, error ) {
         if( status == "timeout" ) {
             // try agian if it takes too long
             console.log("TIMEOUT");
+            getResponse();
+        } else {
+            console.log("ALERT STATUS: ", status + " " + error);
+            prevOutput = "Change of subject";
             getResponse();
         }
     });
@@ -2612,4 +2665,8 @@ function blendColors(r1,g1,b1,r2,g2,b2,balance) {
 function shadeColor2(color, percent) {   
     var f=parseInt(color.slice(1),16),t=percent<0?0:255,p=percent<0?percent*-1:percent,R=f>>16,G=f>>8&0x00FF,B=f&0x0000FF;
     return "#"+(0x1000000+(Math.round((t-R)*p)+R)*0x10000+(Math.round((t-G)*p)+G)*0x100+(Math.round((t-B)*p)+B)).toString(16).slice(1);
+}
+
+function distanceBetweenPoints(x1,y1,x2,y2) {
+    return Math.hypot(x2-x1, y2-y1)
 }
