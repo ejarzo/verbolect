@@ -17,13 +17,15 @@ const USE_OVERLAY           = 1,    // "eye" circle
 
 let   INFINITE_REPEAT       = 1;    // run indefinitely 
 
+const RESET_CS_MOD = 20;
+
 const YOUTUBE_AUDIO_ON_TIME = 45000,
-      MAX_TIME_BETWEEN_RESPONSES = 2000,
-      MIN_TIME_BETWEEN_RESPONSES = 1000;
+      MAX_TIME_BETWEEN_RESPONSES = 7000,
+      MIN_TIME_BETWEEN_RESPONSES = 500;
 
 const EYE_RADIUS            = 320,  // radius of roving eye
-      EYE_SIZE_CHANGE_MOD   = 5;    // how often the eye changes size
-      CHAPTER_SWITCH_MOD    = 6;    // how often the chapters change
+      EYE_SIZE_CHANGE_MOD   = 6;    // how often the eye changes size
+      CHAPTER_SWITCH_MOD    = 5;    // how often the chapters change
 
 const totalWidth = getViewport()[0],       // width of the view
       totalHeight = getViewport()[1];      // height of the view
@@ -31,7 +33,7 @@ const totalWidth = getViewport()[0],       // width of the view
 let SEQUENCE_COUNT = 0,
     RESPOSNE_COUNT = 0,
     NUM_RESPONSES_FOR_SEQUENCE = 25,
-    MAX_RESPONSES_PER_PRINT = 300,
+    MAX_RESPONSES_PER_PRINT = 250,
     MIN_RESPONSES_PER_PRINT = 50;
 
 let currChapterIndex = 0,
@@ -62,9 +64,9 @@ const keywordToAudioMapping = {
     "stop": "space/blackholes.mp3",
     "confused": "technology/calculating.mp3",
     "confuse": "technology/calculating.mp3",
-    "four": "animals/bluejay.mp3",
-    "4": "animals/bluejay.mp3",
-    "blue": "animals/bluejay.mp3",
+    "four": "animal/bluejay.mp3",
+    "4": "animal/bluejay.mp3",
+    "blue": "animal/bluejay.mp3",
     "bathroom": "misc/flush.mp3",
     "house": "misc/fire.mp3",
     "dog": "animal/dog.mp3",
@@ -107,8 +109,9 @@ const emotionGraphNoiseAmounts = {
 let EM;
 
 // init state
-let prevOutput = "";
+let prevOutput = "Hello";
 let prevCs = "";
+let prevInteractionCount = 0;
 
 // the modules
 let particlesModule,
@@ -331,7 +334,7 @@ class EmotionManager {
         if (input == "anger") {
             r = 175;
             g = 7;
-            b = 7;
+            b = 7; 
         }
         if (input == "sad") {
             r = 145;
@@ -663,7 +666,7 @@ class Particles {
         }
 
         this.dumpColors = (rectList) => {
-            console.log("RECTLIST", rectList)
+            //console.log("RECTLIST", rectList)
             const rectWidth = totalWidth / rectList.length;
             const combinedRadius = nodeRadius + nodeBuffer;
             const numNodesPerColor = Math.floor(rectWidth / (2 * combinedRadius));
@@ -673,7 +676,7 @@ class Particles {
                 const rect = rectList[i];
              
                 setIntervalX((elapsed) => {
-                    console.log(elapsed);
+                    //console.log(elapsed);
                     for (let j = 0; j < numNodesPerColor; j++) {
                         const x = rectWidth * (i - 1) + j * 2 * (combinedRadius);
                         const y = 2 * combinedRadius;
@@ -696,7 +699,6 @@ class Particles {
         }
         
         this.setSpinnerSpeed = (i, s) => {
-            console.log("================================================================================ SETTING SPINNER SPEED")
             this.interval = 0;
             const newSpeed = parseInt(100/s);
             spinners[i].speed = newSpeed;
@@ -793,32 +795,9 @@ class Particles {
             var i2 = d3.interpolateNumber(0, 1);
             if (mode === 0) {
                 d3.timer(() => {
-                    // spinners.forEach((spinner) => {
-                    //     spinner.elem.attr("cy", height / 2 - spinner.radius)
-                    // })
-                    //console.log(Date.now() - start);
-                    //console.log("STARTING: ", spinners[0].speed, "TARGET: ", this.targetSpeeds[0]);
+                  
                     var angle1 = ((Date.now() - start) / spinners[0].speed);
                     var angle2 = ((Date.now() - start) / spinners[1].speed);
-                    
-
-
-                    // console.log(this.interval);
-                    // if (this.interval < 1 ) {
-                    //     var i = d3.interpolateNumber(spinners[0].speed, this.targetSpeeds[0]);
-
-                    //     console.log("-----", Number((i(this.interval)).toFixed(4)));
-
-                    //     angle1 = ((Date.now() - start) / Number((i(this.interval)).toFixed(4))); 
-                    //     this.interval += stepAmound/10;
-                    //     this.interval = Number((this.interval).toFixed(2));
-                    //     //this.interval = i2(this.interval);
-
-                    // } else {
-                    //     spinners[0].speed = this.targetSpeeds[0];
-                    //     this.interval = 1;
-                    // }
-                    
 
                     var transformCircle1 = function() {
                         return "rotate(" + angle1 + "," + width / 4 + "," + height / 2 +")";
@@ -830,12 +809,6 @@ class Particles {
                     // animate circles
                     var circle1 = spinners[0].elem;
                     var circle2 = spinners[1].elem;
-
-                    const prevTransform1 = circle1.attr("transform");
-                    //console.log(prevTransform1);
-
-
-                   
 
                     circle1.attr("transform", transformCircle1);
                     circle2.attr("transform", transformCircle2);
@@ -1501,7 +1474,8 @@ class ShapeDrawing {
             currY: 0,
             prevCol: initColor,
             targetCol: initColor,
-            widthMod: 0
+            widthMod: 0,
+            isInPosition: true
         }
 
         this.rightShapeData = {
@@ -1509,10 +1483,11 @@ class ShapeDrawing {
             currY: 0,
             prevCol: initColor,
             targetCol: initColor,
-            widthMod: totalWidth
+            widthMod: totalWidth,
+            isInPosition: true
         }
 
-        this.shapeDatas = [this.leftShapeData, this.rightShapeData];
+        this.shapeDatas = [this.rightShapeData, this.leftShapeData];
 
         // start
         this.timer = d3.timer(this.step);
@@ -1542,43 +1517,39 @@ class ShapeDrawing {
         this.targetX = x;
         this.targetY = y;
 
-        if (this.isRight()) {
-            
-            $(".text-output-1").css({"left": this.targetX - 10, "top": this.targetY - 17});
-            $(".text-output-1").css({"opacity": 1});
-            $(".text-output-1").css({"background": "#000"});
-            $(".text-output-1").css({"color": "#fff"});
+        let isDoneTyping = () => false;
+        let isInPosition = () => false;
 
-            typeWriter(".text-output-1", text, 0, () => {
-                this.context.strokeText(text,x,y);
+        const targetIndex = this.isRight() ? 0 : 1;
+        const targetElem = $(".text-output-"+targetIndex);
+        const newX = this.isRight() ? totalWidth - x : x;
+
+        targetElem.css({"left": newX - 10, "top": this.targetY - 17});
+        targetElem.css({"opacity": 1});
+        // targetElem.css({"background": "#000"});
+        // targetElem.css({"color": "#fff"});
+
+        typeWriter(".text-output-"+targetIndex, text, 0, () => {
+            isDoneTyping = () => true;
+            if (isInPosition()) {
                 setTimeout(() => {
-                    $(".text-output-1").css({"opacity": 0});
+                    this.context.strokeText(text,newX,y);
+                    targetElem.css({"opacity": 0});
                 }, 1500)
-            })
+            }
+        })
 
-            this.shapeDatas[0].prevCol = this.shapeDatas[0].targetCol;
-            this.shapeDatas[0].targetCol = color;
+        setTimeout(() => {
+            isInPosition = () => true;
+            if (isDoneTyping()) {
+                this.context.strokeText(text,newX,y);
+                targetElem.css({"opacity": 0});
+            }
+        }, 4000)
 
-        } else {
+        this.shapeDatas[targetIndex].prevCol = this.shapeDatas[targetIndex].targetCol;
+        this.shapeDatas[targetIndex].targetCol = color;
 
-            $(".text-output-0").css({"left": totalWidth - x - 10, "top": this.targetY - 17});
-            $(".text-output-0").css({"opacity": 1});
-            $(".text-output-0").css({"background": "#000"});
-            $(".text-output-0").css({"color": "#fff"});
-
-
-            typeWriter(".text-output-0", text, 0, () => {
-                this.context.strokeText(text,totalWidth-x,y);
-                setTimeout(() => {
-                    $(".text-output-0").css({"opacity": 0});
-                }, 1500)
-            })
-
-
-            this.shapeDatas[1].prevCol = this.shapeDatas[1].targetCol;
-            this.shapeDatas[1].targetCol = color;
-
-        }
         this.count++;
     }
 
@@ -1626,7 +1597,7 @@ class ShapeDrawing {
           backgroundColor: 'rgba(255,255,255,1)'
         });*/
 
-       // setTimeout(() => {
+        setTimeout(() => {
             // save image as pdf   
             const date = new Date();     
             const imgData = $("#shape-drawing canvas")[0].toDataURL("image/png", 1.0);
@@ -1634,8 +1605,8 @@ class ShapeDrawing {
                 orientation: 'landscape',
             });
 
-            const printSizeRatio = 6.65;
-            doc.addImage(imgData, 'PNG', 4, 20, totalWidth/printSizeRatio, totalHeight/printSizeRatio);
+            const printSizeRatio = 6.9;
+            doc.addImage(imgData, 'PNG', 10, 20, totalWidth/printSizeRatio, totalHeight/printSizeRatio);
             doc.save("VERBOLECT_SEQUENCE_" + SEQUENCE_COUNT + "_" + date + ".pdf");
 
             this.timer.stop();
@@ -1666,7 +1637,7 @@ class ShapeDrawing {
                 $("#shape-drawing").css({"background": "rgba(255,255,255,0)"});
             }, 10000)
 
-        //}, 10000)
+        }, 10000)
 
     }
 }
@@ -1752,17 +1723,19 @@ class LocalVideo {
 class Livestream {
     constructor () {
         this.elem = $("#livestream-module");
-        this.elem.append('<iframe allowfullscreen webkitallowfullscreen mozallowfullscreen\
-                            src="https://video.nest.com/embedded/live/DVkQ5chGch" frameborder="0"\
+        this.elem.append('<iframe allowfullscreen webkitallowfullscreen mozallowfullscreen frameborder="0"\
                             width="'+totalWidth+'" height="'+totalHeight+'"></iframe>');
     }
 
     enable () {
+        $("#livestream-module iframe").attr("src", "https://video.nest.com/embedded/live/DVkQ5chGch")
         //this.vidElem.play();
         this.elem.show();
     }
 
     disable () {
+        $("#livestream-module iframe").attr("src", "")
+
         //this.vidElem.pause();
         this.elem.hide();
     }
@@ -1837,17 +1810,21 @@ class Overlay {
     }
 
     blink (onClosed, onEnd) {
+        //d3.timerFlush();
+        if (this.expandTimer) {
+            this.expandTimer.stop()
+            this.clearBackground();
+            this.clipArc(this.ctx, overlay.width/2, overlay.height/2, this.radius, this.radius, 10, this.blurAmount);
+        }
+
         const speed = this.radius/4;
         const closedTime = 200;
         let count = speed;
         
         if (USE_OVERLAY) {
-
-
             this.blinkTimer = d3.timer(() => {
                 
-                if (this.radius - count < 0) {
-                    
+                if (this.radius - count < 0) { 
                     this.blinkClosed(this.radius);
                     count = this.radius;
                     if (onClosed) {
@@ -1877,10 +1854,9 @@ class Overlay {
             });
         }
     }
-   
+
     clearBackground () {
         this.ctx.fillStyle = this.fillStyle;
-
         this.ctx.fillRect(-1*overlay.width, -1*overlay.height, overlay.width*2, overlay.height*2);
     }
 
@@ -1894,14 +1870,15 @@ class Overlay {
     }
     
     setEyeRadius (targetR) {
+        //d3.timerFlush();
         var diff = targetR - this.radius;
         var speed = 6;
         var count = (diff > 0) ? speed : -1 * speed;
 
-        var t = d3.timer(() => {
+        this.expandTimer = d3.timer(() => {
             if (diff > 0) {
                 if (this.radius + count >= targetR) {
-                    t.stop();
+                    this.expandTimer.stop();
                     //this.animateRadius(targetR);
                     this.radius = targetR;
                 } else {
@@ -1910,7 +1887,7 @@ class Overlay {
                 }
             } else {
                 if (this.radius + count <= targetR) {
-                    t.stop();
+                    this.expandTimer.stop();
                     this.isChangingSize = false;
 
                     //this.animateRadius(targetR);
@@ -1936,6 +1913,13 @@ class Overlay {
         this.clipArc(this.ctx, overlay.width/2, overlay.height/2, targetR, targetR, 10, this.blurAmount);
     }
 
+    reset() {
+        this.blinkTimer.stop();
+        this.expandTimer.stop();
+        this.clearBackground();
+        this.radius = 100;
+        this.clipArc(this.ctx, overlay.width/2, overlay.height/2, this.radius, this.radius, 10, this.blurAmount);
+    }
 
     /* sets speed of eye based on emotion */
     setEyeSpeed (emotionCategory) {
@@ -2041,13 +2025,6 @@ $(document).on("ready", function () {
             localVideoModule
         ];
 
-
-    var AudioContext = window.AudioContext || window.webkitAudioContext;
-    var audioCtx = new AudioContext();
-    var panner = audioCtx.createPanner(-1);
-    var listener = audioCtx.listener;
-
-
     // start with one response
     getResponse();
 
@@ -2055,37 +2032,30 @@ $(document).on("ready", function () {
         $(".dynamic-modules .module-section").hide();
     }
 
-    // if (USE_OVERLAY) {
-    //     overlayModule.blink();
-    // }
-
-    // Start random eye movements
     if (USE_RANDOM_MOVEMENTS) {
-        loop(5000, 2000, () => overlayModule.moveEyeToRandomLocation());      
-        /*loop(5000, 2000, () => {
+        // eye roving
+        loop(5000, 2000, () => overlayModule.moveEyeToRandomLocation());  
+
+        // nature images zoom    
+        loop(5000, 2000, () => {
             if (currChapterIndex == 4) {
                 $("#nature-image-module").css({
-                    "background-size": Math.random()*800 + "% ",
-                    "background-position": Math.random()*100 + "% " + Math.random()*100 + "%"
-                    //"transform": "scale("+(Math.random() * 20)+")",
+                    "transform": "scale("+(Math.random() * 10 + 1)+")",
                 })
-
             }
-        });*/
+        });
+
+        // faces zoom and pan
         loop(10000, 5000, () => {
             if (currChapterIndex == 5) {
                 $("#face-image-module").css({
                     "background-size": Math.random()*800 + "% ",
-                    //"transform": "scale("+(Math.random() * 20)+")",
                     "background-position": Math.random()*100 + "% " + Math.random()*100 + "%"
                 })
             }
            
         });
     }
-
-
-    //playAudioForResponse("i don't know");
 })
 
 
@@ -2099,36 +2069,35 @@ $(window).keypress(function(e) {
         getResponse();
     }
     
-    if (e.which === 122) { // z
-        shapeDrawingModule.takeSnapshot();
-    }
+    // if (e.which === 122) { // z
+    //     shapeDrawingModule.takeSnapshot();
+    // }
 
     if (e.which === 98) { // b
         switchChapter(parseInt(Math.random() * dynamicModulesList.length))
     } 
 
-    if (e.which === 110) { // n
-        overlayModule.setEyeRadius(100);
-    }
+    // if (e.which === 110) { // n
+    //     overlayModule.setEyeRadius(100);
+    // }
    
-    if (e.which === 109) { // n
-       overlayModule.blink(() => {
+    // if (e.which === 109) { // n
+    //    overlayModule.blink(() => {
 
-       });
-    }
+    //    });
+    // }
 
     if (e.which === 100) { // d
-        //dump();
-        generateNRandomNodes(200)
+        generateNRandomNodes(200);
     }
 
     if (e.which === 102) {  // f
         clearParticles();
     } 
-    if (e.which === 103) {
-        blurText(0, 10);
-        blurText(1, 100);
-    }
+    // if (e.which === 103) {
+    //     blurText(0, 10);
+    //     blurText(1, 100);
+    // }
     if (e.which === 112) {  // p
         videoPlayerModule.unMute();
     }
@@ -2138,10 +2107,14 @@ $(window).keypress(function(e) {
     if (e.which === 113) { // q
         INFINITE_REPEAT = !INFINITE_REPEAT;
     }
+
+    if (e.which === 114) { // r
+        printAndReset();
+    }
 });
 
 function dump () {
-    console.log("dumping", historyModule.colorsList);
+    //console.log("dumping", historyModule.colorsList);
     particlesModule.dumpColors(historyModule.colorsList);
     historyModule.dumpColors();
 }
@@ -2151,9 +2124,10 @@ function clearParticles () {
 }
 
 function switchChapter (i) {
-    currChapterIndex = i;
-    console.log("SWITCHING TO ", i);
     if (USE_CHAPTERS) {
+        currChapterIndex = i;
+        console.log("SWITCHING TO ", i);
+
         dynamicModulesList.forEach((module, index) => {
             if (index != i) {
                 module.disable();
@@ -2176,9 +2150,10 @@ let changeEyeSizeNext = false;
 
 function cleverbotResponseSuccess(data) {
     $(".loading-spinner").hide();
-
+    
+    // increment interaciont count
     RESPOSNE_COUNT++;
-
+    prevInteractionCount++;
 
     //switchChapter(2);
     const emotionData = {
@@ -2196,26 +2171,38 @@ function cleverbotResponseSuccess(data) {
     }
 
     // get emotion category and corresponding color
-    const emotionCategory = EM.getEmotionCategory(data.emotion);
-    const emotionColor = rgbToHex(EM.getColorForEmotion(data.emotion));
+    let emotionCategory = EM.getEmotionCategory(data.emotion);
+    if (!emotionCategory) {
+        emotionCategory = EM.getEmotionCategory(data.reaction);
+    }
 
+    if (!emotionCategory) {
+        emotionCategory = "anger";
+    }
     if (true) {
         console.log(data);
         //console.log("INTERACTION COUNT: ", data.interaction_count)
-        console.log("OUTPUT: ", data.output);
+        console.log("%c OUTPUT: " + data.output, 'background: #FFF; color: #222; font-size: 20px');
+        //'%c Oh my heavens! ', 'background: #222; color: #bada55')
         console.log("EMOTION: ", data.emotion);
         console.log("IN CATEGORY: ", emotionCategory);
         console.log("Emotion Degree: ", data.emotion_degree);
         console.log("Reaction Degree: ", data.reaction_degree);
-        
         console.log("EMOTION: ", emotionData, "REACTION: ", reactionData);
+        console.log("==========================");
+        console.log("NEXT PRINTOUT: ", NUM_RESPONSES_FOR_SEQUENCE - RESPOSNE_COUNT);
     }
-    
+
+
+
+
+    const emotionColor = rgbToHex(EM.getColorForEmotion(data.emotion));
+
     // left or right
-    const botIndex = data.interaction_count % 2 ? 0 : 1;
+    const botIndex = prevInteractionCount % 2 ? 0 : 1;
 
     // gradient
-    if (data.interaction_count > 0) {
+    if (prevInteractionCount > 0) {
         gradientModule.addColor(emotionColor);
     }
 
@@ -2227,8 +2214,9 @@ function cleverbotResponseSuccess(data) {
     }
 
     // time to switch chapters
-    if (data.interaction_count % CHAPTER_SWITCH_MOD == 0 && USE_CHAPTERS) {
-        
+    console.log("INTERACTION:", prevInteractionCount);
+    if (prevInteractionCount % CHAPTER_SWITCH_MOD == 0 && USE_CHAPTERS) {
+        console.log("SWITCHING CHAPTER")
         // loop back to first
         if (chapterCount >= numDynamicModules()) {
             chapterCount = 0;
@@ -2237,8 +2225,8 @@ function cleverbotResponseSuccess(data) {
 
         const c = chapterCount;
         overlayModule.blink(() => {
-            CHAPTER_SWITCH_MOD = parseInt(Math.random() * 11 + 1);
             switchChapter(c);
+            CHAPTER_SWITCH_MOD = parseInt(Math.random() * 11 + 1);
         }, () => {
             // set eye size
             if (changeEyeSizeNext) {
@@ -2254,16 +2242,11 @@ function cleverbotResponseSuccess(data) {
     overlayModule.setEyeSpeed(emotionCategory);
     
     // set eye size
-    if (data.interaction_count % EYE_SIZE_CHANGE_MOD == 0 && USE_OVERLAY) {
+    if (prevInteractionCount % EYE_SIZE_CHANGE_MOD == 0 && USE_OVERLAY) {
         changeEyeSizeNext = true;
         //overlayModule.setEyeRadius(Math.random() * totalHeight + 10);
-    } else {
-        //changeEyeSizeNext = false;
     }
-    //switchChapter(chapterCount);
    
-
-
     // add to constellation
     constellationModule.addPoint(emotionData.degree, reactionData.degree, emotionColor)
 
@@ -2291,9 +2274,9 @@ function cleverbotResponseSuccess(data) {
     const voiceParams = EM.getVoiceParamsForEmotionCategory(emotionCategory)
 
     if (USE_VOICE) {
-        responsiveVoice.speak(data.output, data.interaction_count % 2 ? "UK English Male" : "US English Female", {
+        responsiveVoice.speak(data.output, prevInteractionCount % 2 ? "UK English Male" : "US English Female", {
             rate: voiceParams.rate,
-            pitch: data.interaction_count % 2 ? voiceParams.pitch : voiceParams.pitch/4,
+            pitch: prevInteractionCount % 2 ? voiceParams.pitch : voiceParams.pitch/4,
             volume: voiceParams.volume,
             onend: () => {
                 // check for substrings
@@ -2308,18 +2291,7 @@ function cleverbotResponseSuccess(data) {
                 } 
 
                 if (USE_PRINTING && RESPOSNE_COUNT >= NUM_RESPONSES_FOR_SEQUENCE) {
-                    console.log("PRINTING SEQUENCE: ", SEQUENCE_COUNT);
-
-                    shapeDrawingModule.takeSnapshot(() => {
-                        SEQUENCE_COUNT++;
-                        RESPOSNE_COUNT = 0;
-
-                        console.log("============= NEW SEQUENCE =======================");
-                        console.log("WILL GO FOR ", NUM_RESPONSES_FOR_SEQUENCE, " RESPONSES");
-
-                        getResponse();                      
-                    });
-
+                    printAndReset();
 
                 } else if (INFINITE_REPEAT) {
                     setTimeout(function () {
@@ -2351,54 +2323,64 @@ function cleverbotResponseSuccess(data) {
     }
 
     // call youtube API
-    if (USE_VIDEOS && data.interaction_count > 1) {
+    if (USE_VIDEOS && prevInteractionCount > 1) {
+        
         const videoUrl = "https://www.googleapis.com/youtube/v3/search?key="+YOUTUBE_API_KEY+"&part=snippet&maxResults=5&q="+encodeURIComponent(data.output);
+        
+
         $.getJSON(videoUrl, function(data){
-            console.log(videoPlayerModule);
-            console.log("YOUTUBE DATA", data);
-            const index = Math.floor(Math.random() * 5);
+            //console.log(videoPlayerModule);
+            //console.log("YOUTUBE DATA", data);
             
+            const index = Math.floor(Math.random() * 5);
             const description = data.items[index].snippet.description;
             const title = data.items[index].snippet.description;
-            console.log("YOUTUBE DESCRIPTION", description);
-
             const id = data.items[index].id.videoId;
+
+            console.log("YOUTUBE DESCRIPTION:", description);
+
             //prevOutput += " " + description;
 
             if (id && videoPlayerModule && videoPlayerModule.isReady) {
                 videoPlayerModule.player.loadVideoById(id);
             }
 
-            const commentsUrl = "https://www.googleapis.com/youtube/v3/commentThreads?key="+YOUTUBE_API_KEY+"&part=snippet&textFormat=plainText&order=relevance&maxResults=5&videoId="+id;
+            const commentsUrl = "https://www.googleapis.com/youtube/v3/commentThreads";
 
             $.ajax({
                 dataType: "json",
                 url: commentsUrl,
+                data: {
+                    key: YOUTUBE_API_KEY,
+                    videoId: id,
+                    part: "snippet", 
+                    textFormat: "plainText",
+                    order: "relevance",
+                    maxResults: 5
+                },
                 success: (data) => {
-                    console.log("COMMENTS =====================", data);
-                    const firstComment = data.items[0].snippet.topLevelComment.snippet.textDisplay;
-                    console.log("FIRST COMMENT: ", firstComment);
+                    //console.log("COMMENTS =====================", data);
+                    if (data.items[0]) {
+                        const firstComment = data.items[0].snippet.topLevelComment.snippet.textDisplay;
+                        console.log("FIRST YOUTUBE COMMENT: ", firstComment);
+                    }
                     //prevOutput += " " + firstComment;
                 },
                 timeout: 1000
-            }).fail( function( xhr, status ) {
+            }).fail( function(xhr, status) {
                 if( status == "timeout" ) {
                     console.log("YOUTUBE TIMEOUT");
+                } else {
+                    xhr.abort();
                 }
             });
 
-            // $.getJSON(commentsUrl, function(data){
-            //     console.log("COMMENTS =====================", data);
-            //     const firstComment = data.items[0].snippet.topLevelComment.snippet.textDisplay;
-            //     console.log("FIRST COMMENT: ", firstComment);
-            //     prevOutput += " " + firstComment;
-            // });
         });
     }
-
+    
     // store previous reply
     prevOutput = data.output;
-    prevCs = data.cs;
+    prevCs = data.interaction_count % RESET_CS_MOD == 0 ? "" : data.cs;
 }
 
 /* 
@@ -2407,34 +2389,63 @@ function cleverbotResponseSuccess(data) {
 function getResponse () {
 
     $(".loading-spinner").show();
+    
     if (USE_LINE_DRAWING) {
         addSvg(parseInt(Math.random()*11) + 1);
     }
 
-    prevOutput = prevOutput.replace(/'/,'')
+    prevOutput = prevOutput.replace(/[^\w\s?.]|_/g, "");
+
     console.log("ENCODING:", prevOutput);
-    console.log("TO:", encodeURIComponent(prevOutput));
-    const cleverbotUrl = "http://www.cleverbot.com/getreply?key=" + CLEVERBOT_API_KEY + "&input=" + 
-                encodeURIComponent(prevOutput) + "&cs=" + prevCs + "&cb_settings_emotion=yes&cb_settings_tweak2=60&cb_settings_tweak1=60";
-    
+    //console.log("TO:", encodeURIComponent(prevOutput.replace(/[^\w\s?.]|_/g, "")));
+
+    const cleverbotUrl = "http://www.cleverbot.com/getreply";
+
     var request = $.ajax({
         dataType: "json",
         url: cleverbotUrl,
+        data: {
+            key: CLEVERBOT_API_KEY,
+            input: encodeURIComponent(prevOutput),
+            cs: prevCs,
+            interaction_count: prevInteractionCount,
+            cb_settings_emotion: "yes",
+            cb_settings_tweak1: 50,
+            cb_settings_tweak2: 50
+        },
         success: cleverbotResponseSuccess,
         timeout: 10000
-    }).fail( function( xhr, status, error ) {
+    }).fail(function(xhr, status, error) {
         if( status == "timeout" ) {
             // try agian if it takes too long
             console.log("TIMEOUT");
             getResponse();
         } else {
+            request.abort();
             console.log("ALERT STATUS: ", status + " " + error);
-            prevOutput = "Change of subject";
+            prevOutput = "Change of subject.";
+            prevCs = "";
             getResponse();
         }
     });
 }
 
+
+function printAndReset () {
+    console.log("PRINTING SEQUENCE: ", SEQUENCE_COUNT);
+
+    shapeDrawingModule.takeSnapshot(() => {
+        SEQUENCE_COUNT++;
+        RESPOSNE_COUNT = 0;
+
+        console.log("============= NEW SEQUENCE =======================");
+        console.log("WILL GO FOR ", NUM_RESPONSES_FOR_SEQUENCE, " RESPONSES");
+        if (INFINITE_REPEAT) {
+            getResponse();
+        }
+    });
+
+}
 
 /* ========================================================================== */
 /* ============================== HELPER ==================================== */
@@ -2566,7 +2577,6 @@ function typeWriter(target, text, n, onEnd) {
         }, 100);
     } else {
         onEnd()
-        $(target).css("opacity", 0);
     }
 }
 
