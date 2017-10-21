@@ -2065,17 +2065,10 @@ $(document).on("ready", function () {
 /* Keyboard shortcuts */
 $(window).keypress(function(e) {
     console.log(e.which);
-    if (e.which === 99) { // c
-        getResponse();
-    }
-    
+
     // if (e.which === 122) { // z
     //     shapeDrawingModule.takeSnapshot();
     // }
-
-    if (e.which === 98) { // b
-        switchChapter(parseInt(Math.random() * dynamicModulesList.length))
-    } 
 
     // if (e.which === 110) { // n
     //     overlayModule.setEyeRadius(100);
@@ -2087,30 +2080,52 @@ $(window).keypress(function(e) {
     //    });
     // }
 
-    if (e.which === 100) { // d
-        generateNRandomNodes(200);
-    }
-
-    if (e.which === 102) {  // f
-        clearParticles();
-    } 
     // if (e.which === 103) {
     //     blurText(0, 10);
     //     blurText(1, 100);
     // }
-    if (e.which === 112) {  // p
+
+    // if (e.which === 100) {          // d : generate 
+    //     generateNRandomNodes(200);
+    // }
+
+    if (e.which === 99) {           // c : get response
+        getResponse();
+    }
+    
+    if (e.which === 98) {           // b : switch chapter
+        switchChapter(parseInt(Math.random() * dynamicModulesList.length))
+    } 
+
+    if (e.which === 102) {          // f : clear particles
+        clearParticles();
+    } 
+
+    if (e.which === 112) {          // p : unmute youtube
         videoPlayerModule.unMute();
     }
-    if (e.which === 111) {  // o
+
+    if (e.which === 111) {          // o : mute youtube
         videoPlayerModule.mute();
     }
-    if (e.which === 113) { // q
+
+    if (e.which === 113) {          // q : toggle infinite repeat
         INFINITE_REPEAT = !INFINITE_REPEAT;
     }
 
-    if (e.which === 114) { // r
+    if (e.which === 114) {          // r : print and reset
         printAndReset();
     }
+
+    if (e.which === 119) {          // w : activate backupt chapter switcher
+        activateBackupSwitcher();
+    }
+
+    if (e.which === 101) {          // e : deactivate backup switcher
+        deactivateBackupSwitcher();
+    }
+
+
 });
 
 function dump () {
@@ -2282,8 +2297,12 @@ function cleverbotResponseSuccess(data) {
                 // check for substrings
                 playAudioForResponse(data.output);
 
-                if (data.output.toLowerCase().indexOf("favorite") >= 0 || data.output.toLowerCase().indexOf("favourite") >= 0) { 
-                    videoPlayerModule.unMute();
+                if (data.output.toLowerCase().indexOf("favorite") >= 0 || 
+                        data.output.toLowerCase().indexOf("favourite") >= 0 || 
+                        data.output.toLowerCase().indexOf("music") >= 0 ||
+                        data.output.toLowerCase().indexOf("movie") >= 0) { 
+                        videoPlayerModule.unMute();
+                    
                     setTimeout(() => {
                         videoPlayerModule.mute();
 
@@ -2437,14 +2456,29 @@ function printAndReset () {
     shapeDrawingModule.takeSnapshot(() => {
         SEQUENCE_COUNT++;
         RESPOSNE_COUNT = 0;
+        console.clear();
 
-        console.log("============= NEW SEQUENCE =======================");
+        console.log("======================= NEW SEQUENCE =======================");
         console.log("WILL GO FOR ", NUM_RESPONSES_FOR_SEQUENCE, " RESPONSES");
+        if (SEQUENCE >= 15) {
+            location.reload();
+        }
         if (INFINITE_REPEAT) {
             getResponse();
         }
     });
+}
 
+let backupSwitcherInterval;
+
+function activateBackupSwitcher () {
+    backupSwitcherInterval = setInterval(function() {
+        switchChapter(parseInt(Math.random() * numDynamicModules()))
+    }, 40 * 1000);
+}
+
+function deactivateBackupSwitcher () {
+    clearInterval(backupSwitcherInterval);
 }
 
 /* ========================================================================== */
