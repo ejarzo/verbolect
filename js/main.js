@@ -2173,14 +2173,14 @@ function cleverbotResponseSuccess(data) {
     //switchChapter(2);
     const emotionData = {
         name: data.emotion,
-        degree: data.emotion_degree,
+        degree: parseInt(data.emotion_degree) ? data.emotion_degree : parseInt(Math.random() * 80),
         tone: data.emotion_tone,
         values: data.emotion_values.split(",")
     }
 
     const reactionData = {
         name: data.reaction,
-        degree: data.reaction_degree,
+        degree: parseInt(data.reaction_degre)  ? data.reaction_degree : parseInt(Math.random() * 80),
         tone: data.reaction_tone,
         values: data.reaction_values.split(",")
     }
@@ -2194,6 +2194,8 @@ function cleverbotResponseSuccess(data) {
     if (!emotionCategory) {
         emotionCategory = "anger";
     }
+
+
     if (true) {
         console.log(data);
         //console.log("INTERACTION COUNT: ", data.interaction_count)
@@ -2456,16 +2458,15 @@ function printAndReset () {
     shapeDrawingModule.takeSnapshot(() => {
         SEQUENCE_COUNT++;
         RESPOSNE_COUNT = 0;
+        getResponse();
         console.clear();
 
         console.log("======================= NEW SEQUENCE =======================");
         console.log("WILL GO FOR ", NUM_RESPONSES_FOR_SEQUENCE, " RESPONSES");
-        if (SEQUENCE >= 15) {
+        if (SEQUENCE >= 10) {
             location.reload();
         }
-        if (INFINITE_REPEAT) {
-            getResponse();
-        }
+        
     });
 }
 
