@@ -32,9 +32,9 @@ const totalWidth = getViewport()[0],       // width of the view
 
 let SEQUENCE_COUNT = 0,
     RESPOSNE_COUNT = 0,
-    NUM_RESPONSES_FOR_SEQUENCE = 25,
-    MAX_RESPONSES_PER_PRINT = 250,
-    MIN_RESPONSES_PER_PRINT = 50;
+    NUM_RESPONSES_FOR_SEQUENCE = parseInt(Math.random() * 50),
+    MAX_RESPONSES_PER_PRINT = 150,
+    MIN_RESPONSES_PER_PRINT = 5;
 
 let currChapterIndex = 0,
     chapterCount = 0;
@@ -2173,14 +2173,14 @@ function cleverbotResponseSuccess(data) {
     //switchChapter(2);
     const emotionData = {
         name: data.emotion,
-        degree: parseInt(data.emotion_degree) ? data.emotion_degree : parseInt(Math.random() * 80),
+        degree: parseInt(data.emotion_degree) ? data.emotion_degree : parseInt(Math.random() * 50),
         tone: data.emotion_tone,
         values: data.emotion_values.split(",")
     }
 
     const reactionData = {
         name: data.reaction,
-        degree: parseInt(data.reaction_degre)  ? data.reaction_degree : parseInt(Math.random() * 80),
+        degree: parseInt(data.reaction_degree) ? data.reaction_degree : parseInt(Math.random() * 50),
         tone: data.reaction_tone,
         values: data.reaction_values.split(",")
     }
@@ -2463,7 +2463,7 @@ function printAndReset () {
 
         console.log("======================= NEW SEQUENCE =======================");
         console.log("WILL GO FOR ", NUM_RESPONSES_FOR_SEQUENCE, " RESPONSES");
-        if (SEQUENCE >= 10) {
+        if (SEQUENCE_COUNT >= 8) {
             location.reload();
         }
         
