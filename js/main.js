@@ -2102,11 +2102,15 @@ $(window).keypress(function(e) {
     } 
 
     if (e.which === 112) {          // p : unmute youtube
-        videoPlayerModule.unMute();
+        if (videoPlayerModule) {
+            videoPlayerModule.unMute();
+        }
     }
 
     if (e.which === 111) {          // o : mute youtube
-        videoPlayerModule.mute();
+        if (videoPlayerModule) {
+            videoPlayerModule.mute();
+        }
     }
 
     if (e.which === 113) {          // q : toggle infinite repeat
@@ -2303,10 +2307,15 @@ function cleverbotResponseSuccess(data) {
                         data.output.toLowerCase().indexOf("favourite") >= 0 || 
                         data.output.toLowerCase().indexOf("music") >= 0 ||
                         data.output.toLowerCase().indexOf("movie") >= 0) { 
-                        videoPlayerModule.unMute();
+                        if (videoPlayerModule) {
+                            videoPlayerModule.unMute();
+                            
+                        }
                     
                     setTimeout(() => {
-                        videoPlayerModule.mute();
+                        if (videoPlayerModule) {
+                            videoPlayerModule.mute();    
+                        }
 
                     }, YOUTUBE_AUDIO_ON_TIME)
                 } 
