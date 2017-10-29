@@ -367,6 +367,10 @@ class EmotionManager {
             b = 10;
         }
 
+        if (input == "") {
+            return this.getColorForEmotion("like");
+        }
+
         return {
             r: r,
             g: g,
@@ -1445,7 +1449,9 @@ class ShapeDrawing {
         this.isRight = () => this.count % 2;
 
         this.context.font = "12px Inconsolata";
-        this.context.strokeText("SEQUENCE 0", 10, 10);
+        this.context.fillStyle = "rgba(255,255,255,1)";
+        this.context.fillRect(0, 0, width, height);
+        this.context.strokeText(this.getSequenceLabel(), 10, 10);
 
         this.clearBackground = () => {
             this.context.fillStyle = "rgba(0,0,0,.005)";
@@ -1506,10 +1512,10 @@ class ShapeDrawing {
         
         //var shapeDataIndex = this.count % 2;
 
-        if (this.count == 1) {
+        if (this.count == 0) {
             this.leftShapeData.currX = x;
             this.leftShapeData.currY = y;
-        } else if (this.count == 2) {
+        } else if (this.count == 1) {
             this.rightShapeData.currX = totalWidth - x;
             this.rightShapeData.currY = y;
         }
@@ -1589,47 +1595,50 @@ class ShapeDrawing {
         }
     }
 
-    takeSnapshot (onEnd) {
+    getSequenceLabel () {
+        const d = new Date();
+        const datestring = ("0" + d.getDate()).slice(-2) + "-" + ("0"+(d.getMonth()+1)).slice(-2) + "-" +
+            d.getFullYear() + " " + ("0" + d.getHours()).slice(-2) + ":" + ("0" + d.getMinutes()).slice(-2);
+        return datestring;
+    }
 
+    takeSnapshot (onEnd) {
         $("#shape-drawing").css({"background": "rgba(255,255,255,1)"});
-      /*  
-        $("#shape-drawing").animate({
-          backgroundColor: 'rgba(255,255,255,1)'
-        });*/
 
         setTimeout(() => {
+            // stop drawing
+            this.timer.stop();
+            this.isPaused = true;
+            
             // save image as pdf   
             const date = new Date();     
             const imgData = $("#shape-drawing canvas")[0].toDataURL("image/png", 1.0);
+            const printSizeRatio = 6.9;
+            
             const doc = new jsPDF({
                 orientation: 'landscape',
             });
 
-            const printSizeRatio = 6.9;
             doc.addImage(imgData, 'PNG', 10, 20, totalWidth/printSizeRatio, totalHeight/printSizeRatio);
             doc.save("VERBOLECT_SEQUENCE_" + SEQUENCE_COUNT + "_" + date + ".pdf");
-
-            this.timer.stop();
-            this.isPaused = true;
 
             // clear modules
             historyModule.dumpColors();
             particlesModule.clear();
 
             // set number of responses for next sequence
-            NUM_RESPONSES_FOR_SEQUENCE = parseInt (Math.random() * MAX_RESPONSES_PER_PRINT + MIN_RESPONSES_PER_PRINT);
+            NUM_RESPONSES_FOR_SEQUENCE = parseInt(Math.random() * MAX_RESPONSES_PER_PRINT + MIN_RESPONSES_PER_PRINT);
 
             $("#print-alert").html("\
-                PRINTING SEQUENCE "+SEQUENCE_COUNT+"<br>\
-                NEXT PRINTOUT IN "+NUM_RESPONSES_FOR_SEQUENCE+" RESPONSES")
+                PRINTING SEQUENCE " + SEQUENCE_COUNT + "<br>\
+                NEXT PRINTOUT IN " + NUM_RESPONSES_FOR_SEQUENCE + " RESPONSES")
             
             $("#print-alert").show();
 
-            //getResponse();
             setTimeout(() => {
                 $("#print-alert").hide();
                 this.context.clearRect(0, 0, totalWidth, totalHeight);
-                this.context.strokeText("SEQUENCE " + (SEQUENCE_COUNT + 1), 10, 10);
+                this.context.strokeText(this.getSequenceLabel(), 10, 10);
                 onEnd();
             }, 5000)
 
@@ -1723,19 +1732,18 @@ class LocalVideo {
 class Livestream {
     constructor () {
         this.elem = $("#livestream-module");
-        this.elem.append('<iframe allowfullscreen webkitallowfullscreen mozallowfullscreen frameborder="0"\
+        this.elem.append('<iframe src="https://video.nest.com/embedded/live/DVkQ5chGch" allowfullscreen webkitallowfullscreen mozallowfullscreen frameborder="0"\
                             width="'+totalWidth+'" height="'+totalHeight+'"></iframe>');
     }
 
     enable () {
-        $("#livestream-module iframe").attr("src", "https://video.nest.com/embedded/live/DVkQ5chGch")
+        //$("#livestream-module iframe").attr("src", "https://video.nest.com/embedded/live/DVkQ5chGch")
         //this.vidElem.play();
         this.elem.show();
     }
 
     disable () {
-        $("#livestream-module iframe").attr("src", "")
-
+        //$("#livestream-module iframe").attr("src", "")
         //this.vidElem.pause();
         this.elem.hide();
     }
