@@ -1449,8 +1449,6 @@ class ShapeDrawing {
         this.isRight = () => this.count % 2;
 
         this.context.font = "12px Inconsolata";
-        this.context.fillStyle = "rgba(255,255,255,1)";
-        this.context.fillRect(0, 0, width, height);
         this.context.strokeText(this.getSequenceLabel(), 10, 10);
 
         this.clearBackground = () => {
