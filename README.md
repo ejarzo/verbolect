@@ -8,7 +8,7 @@ _by NonCoreProjector_
 ## NonCoreProjector is:
 * [John O'Connor](http://www.johnjoconnor.net/)
 * [Rollo Carpenter](https://en.wikipedia.org/wiki/Rollo_Carpenter)
-* [Elias Jarzombek (me)](https://ejarzo.github.io)
+* [Elias Jarzombek](https://ejarzo.github.io)
 * [Jack Colton](https://www.instagram.com/jakecalcium/?hl=en)
 
 ## About
