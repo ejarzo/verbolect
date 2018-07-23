@@ -1,9 +1,13 @@
 # Verbolect
-_by NonCoreProjector_
+_by [NonCoreProjector](http://noncoreprojector.com)_
 
 [verbolect.com](http://www.verbolect.com/)
 
 ![Verbolect](https://i2.wp.com/www.pierogi2000.com/wp/wp-content/uploads/IMG_17542.jpg "Verbolect")
+
+Watch part of the stream below:
+
+[![Verbolect Stream](https://img.youtube.com/vi/wTQ7U2Bu82U/0.jpg)](https://www.youtube.com/watch?v=wTQ7U2Bu82U)
 
 ## NonCoreProjector is:
 * [John O'Connor](http://www.johnjoconnor.net/)
@@ -12,7 +16,7 @@ _by NonCoreProjector_
 * [Jack Colton](https://www.instagram.com/jakecalcium/?hl=en)
 
 ## About
-Verbolect is an upcoming installation at [The BOILER](https://www.pierogi2000.com/2017/08/noncore-projector-at-the-boiler/), Pierogi Gallery's Williamsburg space.
+Verbolect is an installation that opened at [The BOILER](https://www.pierogi2000.com/2017/08/noncore-projector-at-the-boiler/), Pierogi Gallery's Williamsburg space.
 
 We are excited to present this exhibition consisting solely of an extended conversation between “Cleverbot and itself, continuously (24 hours per day) for the duration of the exhibition. The conversation will begin at the start of the exhibition and will be spoken audibly (emanating from two speakers placed on a table facing each other and visibly connected to laptops). The emotional content of the conversation will be translated into an animated projection that will evolve and change in sync with the emotional fluctuations of the conversation. In essence, we’re compelling (or forcing) a robot to talk to itself for an extended duration. Over the course of the exhibition, we’ll broadcast via a 24-hour, live webcam feed on YouTube, so that viewers can ‘eavesdrop’ at any time, day or night.”
 
