@@ -3,6 +3,7 @@ _by [NonCoreProjector](http://noncoreprojector.com)_
 
 [verbolect.com](http://www.verbolect.com/)
 
+![Verbolect in the Boiler](img/in-the-boiler.jpg)
 ![Verbolect](https://i2.wp.com/www.pierogi2000.com/wp/wp-content/uploads/IMG_17542.jpg "Verbolect")
 
 Watch part of the stream below:
